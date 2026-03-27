@@ -16,8 +16,8 @@
             --text-main: #e0e0e0; --text-sub: #aaaaaa; --border-color: #333333; 
             --input-bg: #2d2d2d; --modal-bg: rgba(0, 0, 0, 0.85); --btn-sec: #444;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; transition: 0.3s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; transition: background 0.2s, color 0.2s; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; }
         
         .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
         .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
@@ -27,23 +27,19 @@
         .view-active { display: block; }
         
         .btn-gradient { background: var(--primary-grad); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-theme { background: var(--btn-sec); width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 18px; border:none; color:#fff; cursor:pointer; }
         .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 10px; }
         
-        /* 归档项目 220px 宽度 */
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
         .archive-grid { grid-template-columns: repeat(auto-fill, 220px); } 
         .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 
-        /* 流程可视化样式 */
         .tpl-card { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-        .tpl-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .step-scroll { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        .step-bubble { background: var(--input-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; position: relative; }
-        .step-bubble:hover .step-del { display: block; }
+        .step-bubble { background: var(--input-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; position: relative; color: var(--text-main); }
         .step-del { position: absolute; top: -8px; right: 0; color: #ff4d4f; cursor: pointer; display: none; background: var(--card-bg); border-radius: 50%; width: 16px; height: 16px; text-align: center; line-height: 14px; font-size: 12px; border: 1px solid #ff4d4f; }
+        .step-bubble:hover .step-del { display: block; }
         .step-arrow { color: var(--text-sub); font-size: 14px; font-weight: bold; }
         .step-add { border: 1.5px dashed var(--text-sub); background: none; cursor: pointer; padding: 6px 15px; border-radius: 20px; color: var(--text-sub); font-size: 12px; }
-        .step-add:hover { border-color: #1890ff; color: #1890ff; }
 
         .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(10px); }
         .modal-box { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 95%; max-width: 900px; max-height: 85vh; overflow-y: auto; }
@@ -59,6 +55,7 @@
         <div class="logo-text" onclick="window.switchView('home')">🚀 项目流管理器 V1.0.0</div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
+            <button id="themeBtn" class="btn-theme" onclick="window.toggleTheme()">☀️</button>
             <button class="btn-gradient" style="background:var(--btn-sec)" onclick="window.showTplMgr()">⚙️ 流程设置</button>
             <button class="btn-gradient" id="navArchiveBtn" style="background:#eee; color:#333" onclick="window.switchView('archive')">📂 归档项目</button>
             <button class="btn-gradient" onclick="window.showAdd()">✨ 新建项目</button>
@@ -69,7 +66,7 @@
 <div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
 
 <div id="viewArchive" class="view-section">
-    <div class="filter-bar" style="display:flex; gap:10px; margin-bottom:20px;">
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
         <select id="archYear" class="f-input" style="width:120px;" onchange="window.renderArchive()"></select>
         <select id="archTpl" class="f-input" style="width:150px;" onchange="window.renderArchive()"></select>
         <input type="text" id="archSearch" class="f-input" style="flex:1" placeholder="🔍 搜索名称或单位..." oninput="window.renderArchive()">
@@ -83,9 +80,7 @@
         <button class="btn-gradient" onclick="window.addNewTpl()">+ 新增流程</button>
     </div>
     <div id="tplList"></div>
-    <div style="text-align:right; margin-top:20px;">
-        <button class="btn-gradient" style="padding:12px 40px" onclick="window.closeModal('tplModal')">完成</button>
-    </div>
+    <div style="text-align:right; margin-top:20px;"><button class="btn-gradient" style="padding:12px 40px" onclick="window.closeModal('tplModal')">完成</button></div>
 </div></div>
 
 <div id="addModal" class="modal"><div class="modal-box" style="max-width:400px;">
@@ -102,7 +97,24 @@
     const API_URL = "https://api-flow.roll.ccwu.cc";
     let STATE = { all: [], tpls: [] };
 
-    window.onload = () => { window.loadData(); };
+    // --- 主题切换逻辑 ---
+    window.initTheme = () => {
+        const hour = new Date().getHours();
+        const saved = localStorage.getItem('flow-theme');
+        const theme = saved || ((hour >= 18 || hour < 6) ? 'dark' : 'light');
+        window.applyTheme(theme);
+    };
+    window.applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('flow-theme', theme);
+        document.getElementById('themeBtn').innerText = theme === 'dark' ? '🌙' : '☀️';
+    };
+    window.toggleTheme = () => {
+        const curr = document.documentElement.getAttribute('data-theme');
+        window.applyTheme(curr === 'dark' ? 'light' : 'dark');
+    };
+
+    window.onload = () => { window.initTheme(); window.loadData(); };
 
     window.loadData = async () => {
         window.updateStatus(true);
@@ -120,7 +132,6 @@
         } finally { window.updateStatus(false); }
     };
 
-    // 渲染主页卡片
     window.renderHome = () => {
         const home = document.getElementById("projectList");
         home.innerHTML = "";
@@ -146,7 +157,6 @@
         });
     };
 
-    // --- 核心：可视化流程设置逻辑 ---
     window.showTplMgr = () => {
         const list = document.getElementById("tplList");
         list.innerHTML = "";
@@ -155,21 +165,19 @@
             const div = document.createElement("div");
             div.className = "tpl-card";
             div.innerHTML = `
-                <div class="tpl-title-row">
-                    <span style="font-weight:bold; font-size:15px;">📂 <span contenteditable="true" onblur="window.saveTplName('${t.id}', this.innerText)">${t.name}</span></span>
-                    <span style="color:#ff4d4f; font-size:12px; cursor:pointer;" onclick="window.deleteTpl('${t.id}')">🗑️ 删除此流程</span>
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <span style="font-weight:bold;">📂 <span contenteditable="true" onblur="window.saveTplName('${t.id}', this.innerText)">${t.name}</span></span>
+                    <span style="color:#ff4d4f; font-size:12px; cursor:pointer;" onclick="window.deleteTpl('${t.id}')">🗑️ 删除</span>
                 </div>
-                <div class="step-scroll">
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
                     ${steps.map((s, i) => `
                         <div class="step-bubble">
-                            <b>${i+1}.</b>
-                            <span contenteditable="true" onblur="window.editStep('${t.id}', ${i}, this.innerText)">${s}</span>
+                            <b>${i+1}.</b><span contenteditable="true" onblur="window.editStep('${t.id}', ${i}, this.innerText)">${s}</span>
                             <div class="step-del" onclick="window.removeStep('${t.id}', ${i})">×</div>
                         </div>
                         ${i < steps.length - 1 ? '<span class="step-arrow">→</span>' : ''}
                     `).join('')}
-                    ${steps.length > 0 ? '<span class="step-arrow">→</span>' : ''}
-                    <button class="step-add" onclick="window.addStep('${t.id}')">+ 增加步骤</button>
+                    <button class="step-add" onclick="window.addStep('${t.id}')">+ 增加</button>
                 </div>
             `;
             list.appendChild(div);
@@ -210,51 +218,41 @@
     };
 
     window.addNewTpl = async () => {
-        const name = prompt("输入新业务流名称:");
-        if(!name) return;
-        const newTpl = { id: 't-'+Date.now(), name, steps: JSON.stringify(["第一阶段"]) };
-        await window.apiPost("/templates", newTpl);
-        await window.loadData();
-        window.showTplMgr();
-    };
-
-    window.deleteTpl = async (id) => {
-        if(confirm("确定彻底删除此流程模板吗？")) {
-            await fetch(API_URL + "/templates", {method: "DELETE", body: JSON.stringify({id})});
-            await window.loadData();
-            window.showTplMgr();
+        const name = prompt("业务流名称:");
+        if(name) {
+            await window.apiPost("/templates", { id: 't-'+Date.now(), name, steps: JSON.stringify(["第一阶段"]) });
+            await window.loadData(); window.showTplMgr();
         }
     };
 
-    // --- 归档页逻辑 ---
+    window.deleteTpl = async (id) => {
+        if(confirm("确定删除？")) {
+            await fetch(API_URL + "/templates", {method: "DELETE", body: JSON.stringify({id})});
+            await window.loadData(); window.showTplMgr();
+        }
+    };
+
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const q = document.getElementById("archSearch").value.toLowerCase();
-        const yearFilter = document.getElementById("archYear").value;
-        const tplFilter = document.getElementById("archTpl").value;
+        const year = document.getElementById("archYear").value;
+        const tpl = document.getElementById("archTpl").value;
         grid.innerHTML = "";
         STATE.all.filter(p => p.isArchived).filter(p => {
             const pYear = new Date(p.createdAt).getFullYear().toString();
             return (p.n.toLowerCase().includes(q) || (p.un && p.un.toLowerCase().includes(q))) &&
-                   (!yearFilter || pYear === yearFilter) && (!tplFilter || p.tpl === tplFilter);
+                   (!year || pYear === year) && (!tpl || p.tpl === tpl);
         }).forEach(p => {
-            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name: "未知"};
             const days = Math.ceil(((p.archivedAt || Date.now()) - p.createdAt) / 86400000);
             const card = document.createElement("div");
             card.className = "card";
             card.innerHTML = `<div style="position:absolute; top:8px; right:8px; color:#ff4d4f; cursor:pointer;" onclick="window.deleteP('${p.id}')">×</div>
                 <div style="font-weight:800; color:#1890ff; cursor:pointer;" onclick="window.updateField('${p.id}', 'isArchived', 0)">📁 ${p.n}</div>
                 <div style="font-size:10px; color:var(--text-sub); line-height:1.6; margin-top:8px;">
-                    📅 ${new Date(p.createdAt).toLocaleDateString()}<br>⏱️ 耗时: ${days} 天<br>🏢 ${p.un || '-'}<br>📑 ${tpl.name}
+                    📅 ${new Date(p.createdAt).toLocaleDateString()}<br>⏱️ 耗时: ${days} 天<br>🏢 ${p.un || '-'}
                 </div>`;
             grid.appendChild(card);
         });
-    };
-
-    window.archiveProject = async (id) => {
-        const p = STATE.all.find(x => x.id === id);
-        p.isArchived = 1; p.archivedAt = Date.now();
-        await window.apiPost("/", p); window.loadData();
     };
 
     window.updateFilters = () => {
@@ -264,20 +262,22 @@
     };
 
     window.updateTplSelect = () => document.getElementById("ipt_tpl").innerHTML = STATE.tpls.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-
     window.updateField = async (id, field, val) => {
         const p = STATE.all.find(x => x.id === id);
         p[field] = (field === 's' || field === 'isArchived') ? Number(val) : val;
         await window.apiPost("/", p); window.loadData();
     };
-
     window.apiPost = async (path, data) => {
         window.updateStatus(true);
         try { await fetch(API_URL + path, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) }); } 
         finally { window.updateStatus(false); }
     };
-
-    window.deleteP = async (id) => { if(confirm("彻底删除不可恢复，确定？")) { await fetch(API_URL, {method:"DELETE", body:JSON.stringify({id})}); window.loadData(); } };
+    window.archiveProject = async (id) => {
+        const p = STATE.all.find(x => x.id === id);
+        p.isArchived = 1; p.archivedAt = Date.now();
+        await window.apiPost("/", p); window.loadData();
+    };
+    window.deleteP = async (id) => { if(confirm("删除？")) { await fetch(API_URL, {method:"DELETE", body:JSON.stringify({id})}); window.loadData(); } };
     window.switchView = (v) => {
         document.getElementById("viewHome").style.display = v==='home'?'block':'none';
         document.getElementById("viewArchive").style.display = v==='archive'?'block':'none';
@@ -285,10 +285,9 @@
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
     window.closeModal = (id) => { document.getElementById(id).style.display = "none"; window.loadData(); };
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
-
     window.addP = async () => {
         const n = document.getElementById("ipt_n").value;
-        if(!n) return alert("名称必填");
+        if(!n) return alert("必填");
         await window.apiPost("/", { id: 'p-'+Date.now(), n, tpl: document.getElementById("ipt_tpl").value, un: document.getElementById("ipt_un").value, am: Number(document.getElementById("ipt_am").value), s: 0, isPinned: 0, isArchived: 0, logs: [], createdAt: Date.now() });
         window.closeModal("addModal");
     };
