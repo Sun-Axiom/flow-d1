@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 v1.9.5 | Archive Analytics</title>
+    <title>项目流管理器 V1.0.0</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -20,7 +20,7 @@
         
         .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
         .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .logo-text { font-size: 20px; font-weight: 800; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .logo-text { font-size: 18px; font-weight: 800; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
         
         .view-section { display: none; max-width: 1200px; margin: 25px auto; padding: 0 20px; }
         .view-active { display: block; }
@@ -29,9 +29,8 @@
         .btn-theme { background: var(--btn-sec); width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 18px; }
         .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 10px; }
         
-        /* 筛选栏：年份和流程在前，搜索在后 */
         .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
-        .filter-fixed { width: 140px; margin-bottom: 0 !important; }
+        .filter-fixed { width: 130px; margin-bottom: 0 !important; }
         .filter-search { flex: 1; margin-bottom: 0 !important; }
 
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
@@ -54,13 +53,13 @@
 
 <div class="nav-header">
     <div class="nav-content">
-        <div class="logo-text" onclick="window.switchView('home')">🚀 Flow D1</div>
+        <div class="logo-text" onclick="window.switchView('home')">🚀 项目流管理器 V1.0.0</div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
             <button id="themeBtn" class="btn-gradient btn-theme" onclick="window.toggleTheme()">☀️</button>
             <button class="btn-gradient" style="background:var(--btn-sec)" onclick="window.showTplMgr()">⚙️ 流程设置</button>
-            <button class="btn-gradient" id="navArchiveBtn" style="background:#eee; color:#333" onclick="window.switchView('archive')">📂 归档</button>
-            <button class="btn-gradient" onclick="window.showAdd()">✨ 新建</button>
+            <button class="btn-gradient" id="navArchiveBtn" style="background:#eee; color:#333" onclick="window.switchView('archive')">📂 归档项目</button>
+            <button class="btn-gradient" onclick="window.showAdd()">✨ 新建项目</button>
         </div>
     </div>
 </div>
@@ -158,11 +157,10 @@
         });
     };
 
-    // 特殊处理：归档时记录当前时间作为结束点
     window.archiveProject = async (id) => {
         const p = STATE.all.find(x => x.id === id);
         p.isArchived = 1;
-        p.archivedAt = Date.now(); // 记录归档时间
+        p.archivedAt = Date.now(); 
         await window.apiPost("/", p);
         window.loadData();
     };
@@ -170,20 +168,21 @@
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const q = document.getElementById("archSearch").value.toLowerCase();
-        const year = document.getElementById("archYear").value;
-        const tplId = document.getElementById("archTpl").value;
+        const yearFilter = document.getElementById("archYear").value;
+        const tplFilter = document.getElementById("archTpl").value;
 
         grid.innerHTML = "";
         STATE.all.filter(p => p.isArchived).filter(p => {
-            const date = new Date(p.createdAt);
+            const pDate = new Date(p.createdAt);
+            const pYear = pDate.getFullYear().toString();
+            
             const matchSearch = p.n.toLowerCase().includes(q) || (p.un && p.un.toLowerCase().includes(q));
-            const matchYear = !year || date.getFullYear().toString() === year;
-            const matchTpl = !tplId || p.tpl === tplId;
+            const matchYear = !yearFilter || pYear === yearFilter;
+            const matchTpl = !tplFilter || p.tpl === tplFilter;
+            
             return matchSearch && matchYear && matchTpl;
         }).forEach(p => {
             const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name: "未知流程"};
-            
-            // 计算时长：如果数据库没记录归档时间，取当前时间
             const start = p.createdAt;
             const end = p.archivedAt || Date.now();
             const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
@@ -198,7 +197,7 @@
                 </div>
                 <div style="font-size:10px; color:var(--text-sub); line-height:1.6;">
                     📅 ${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}<br>
-                    ⏱️ 总耗时: <span style="color:var(--text-main); font-weight:bold;">${days} 天</span><br>
+                    ⏱️ 耗时: <span style="color:var(--text-main); font-weight:bold;">${days} 天</span><br>
                     🏢 单位: ${p.un || '-'}<br>
                     📑 流程: ${tpl.name}
                 </div>
@@ -212,6 +211,7 @@
         const yearSel = document.getElementById("archYear");
         const tplSel = document.getElementById("archTpl");
         
+        // 动态提取归档项目中的所有年份
         const years = [...new Set(STATE.all.filter(p=>p.isArchived).map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         yearSel.innerHTML = '<option value="">所有年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
         
