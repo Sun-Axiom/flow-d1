@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 v1.9.0 | Archive Pro</title>
+    <title>项目流管理器 v1.9.5 | Archive Analytics</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -18,7 +18,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; transition: background 0.2s, color 0.2s; }
         body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; }
         
-        /* 导航与布局 */
         .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
         .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .logo-text { font-size: 20px; font-weight: 800; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
@@ -26,23 +25,22 @@
         .view-section { display: none; max-width: 1200px; margin: 25px auto; padding: 0 20px; }
         .view-active { display: block; }
         
-        /* 按钮与输入框 */
         .btn-gradient { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; }
         .btn-theme { background: var(--btn-sec); width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 18px; }
         .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 10px; }
         
-        /* 筛选栏样式 */
-        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .filter-item { flex: 1; min-width: 150px; margin-bottom: 0 !important; }
+        /* 筛选栏：年份和流程在前，搜索在后 */
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .filter-fixed { width: 140px; margin-bottom: 0 !important; }
+        .filter-search { flex: 1; margin-bottom: 0 !important; }
 
-        /* 卡片容器 */
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
-        .archive-grid { grid-template-columns: repeat(auto-fill, 220px); } /* 归档页固定220px */
+        .archive-grid { grid-template-columns: repeat(auto-fill, 220px); } 
         
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-        .card-title-link { cursor: pointer; color: var(--text-main); text-decoration: none; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .card-title-link { cursor: pointer; color: var(--text-main); text-decoration: none; word-break: break-all; }
         .card-title-link:hover { color: #1890ff; }
-        .delete-x { position: absolute; top: 12px; right: 12px; color: #ff4d4f; font-size: 20px; cursor: pointer; line-height: 1; opacity: 0.6; }
+        .delete-x { position: absolute; top: 8px; right: 8px; color: #ff4d4f; font-size: 18px; cursor: pointer; line-height: 1; opacity: 0.4; }
         .delete-x:hover { opacity: 1; transform: scale(1.2); }
 
         .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
@@ -67,15 +65,13 @@
     </div>
 </div>
 
-<div id="viewHome" class="view-section view-active">
-    <div id="projectList" class="grid-container"></div>
-</div>
+<div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
 
 <div id="viewArchive" class="view-section">
     <div class="filter-bar">
-        <input type="text" id="archSearch" class="f-input filter-item" placeholder="🔍 搜索归档项目..." oninput="window.renderArchive()">
-        <select id="archYear" class="f-input filter-item" onchange="window.renderArchive()"></select>
-        <select id="archTpl" class="f-input filter-item" onchange="window.renderArchive()"></select>
+        <select id="archYear" class="f-input filter-fixed" onchange="window.renderArchive()"></select>
+        <select id="archTpl" class="f-input filter-fixed" onchange="window.renderArchive()"></select>
+        <input type="text" id="archSearch" class="f-input filter-search" placeholder="🔍 搜索项目名称或单位..." oninput="window.renderArchive()">
     </div>
     <div id="archiveGrid" class="grid-container archive-grid"></div>
 </div>
@@ -94,7 +90,7 @@
     <h3>⚙️ 流程模板管理</h3><br>
     <div id="tplList"></div>
     <button class="btn-gradient" style="width:100%; margin-top:10px;" onclick="window.addNewTpl()">+ 新增流程模板</button>
-    <button onclick="window.closeModal('tplModal')" style="width:100%; background:none; border:none; margin-top:15px; cursor:pointer;">关闭并刷新数据</button>
+    <button onclick="window.closeModal('tplModal')" style="width:100%; background:none; border:none; margin-top:15px; cursor:pointer;">关闭并刷新</button>
 </div></div>
 
 <script>
@@ -129,8 +125,8 @@
             STATE.all = pRes || [];
             STATE.tpls = tRes || [];
             window.renderHome();
+            window.updateFilters(); 
             window.renderArchive();
-            window.updateFilters();
             window.updateTplSelect();
         } catch(e) { console.error(e); }
         finally { window.updateStatus(false); }
@@ -140,11 +136,10 @@
         const home = document.getElementById("projectList");
         home.innerHTML = "";
         STATE.all.filter(p => !p.isArchived).forEach(p => {
-            const tpl = STATE.tpls.find(t => t.id === p.tpl) || STATE.tpls[0] || {name:"?", steps:'[]'};
+            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name:"?", steps:'[]'};
             let steps = JSON.parse(tpl.steps || "[]");
             const dateStr = new Date(p.createdAt).toLocaleDateString();
             const pct = Math.min(Math.round(((p.s + 1) / steps.length) * 100), 100);
-            
             const card = document.createElement("div");
             card.className = "card";
             card.innerHTML = `
@@ -157,10 +152,19 @@
                 <select class="f-input" style="font-size:12px;" onchange="window.updateField('${p.id}', 's', this.value)">
                     ${steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
                 </select>
-                <button class="f-input" style="padding:5px; margin-top:5px" onclick="window.updateField('${p.id}', 'isArchived', 1)">💾 归档项目</button>
+                <button class="f-input" style="padding:5px; margin-top:5px" onclick="window.archiveProject('${p.id}')">💾 完成并归档</button>
             `;
             home.appendChild(card);
         });
+    };
+
+    // 特殊处理：归档时记录当前时间作为结束点
+    window.archiveProject = async (id) => {
+        const p = STATE.all.find(x => x.id === id);
+        p.isArchived = 1;
+        p.archivedAt = Date.now(); // 记录归档时间
+        await window.apiPost("/", p);
+        window.loadData();
     };
 
     window.renderArchive = () => {
@@ -177,18 +181,28 @@
             const matchTpl = !tplId || p.tpl === tplId;
             return matchSearch && matchYear && matchTpl;
         }).forEach(p => {
-            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name: "未知"};
+            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name: "未知流程"};
+            
+            // 计算时长：如果数据库没记录归档时间，取当前时间
+            const start = p.createdAt;
+            const end = p.archivedAt || Date.now();
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
             const card = document.createElement("div");
             card.className = "card";
             card.innerHTML = `
                 <div class="delete-x" onclick="window.deleteP('${p.id}')">×</div>
-                <div class="card-title-link" style="font-weight:800; margin-bottom:6px; font-size:14px; padding-right:15px;" 
-                     onclick="window.updateField('${p.id}', 'isArchived', 0)" title="点击恢复到主页">
+                <div class="card-title-link" style="font-weight:800; font-size:14px; margin-bottom:6px; color:#1890ff;" 
+                     onclick="window.updateField('${p.id}', 'isArchived', 0)">
                      📁 ${p.n}
                 </div>
-                <div style="font-size:10px; color:var(--text-sub); margin-bottom:4px;">📅 ${new Date(p.createdAt).toLocaleDateString()}</div>
-                <div style="font-size:10px; color:var(--text-sub); margin-bottom:4px;">📑 ${tpl.name}</div>
-                <div style="font-size:11px; font-weight:bold; color:var(--text-main); margin-top:8px;">💰 ¥${Number(p.am || 0).toLocaleString()}</div>
+                <div style="font-size:10px; color:var(--text-sub); line-height:1.6;">
+                    📅 ${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}<br>
+                    ⏱️ 总耗时: <span style="color:var(--text-main); font-weight:bold;">${days} 天</span><br>
+                    🏢 单位: ${p.un || '-'}<br>
+                    📑 流程: ${tpl.name}
+                </div>
+                <div style="font-size:11px; font-weight:bold; margin-top:8px; color:#52c41a;">💰 ¥${Number(p.am || 0).toLocaleString()}</div>
             `;
             grid.appendChild(card);
         });
@@ -198,11 +212,9 @@
         const yearSel = document.getElementById("archYear");
         const tplSel = document.getElementById("archTpl");
         
-        // 年份提取
         const years = [...new Set(STATE.all.filter(p=>p.isArchived).map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         yearSel.innerHTML = '<option value="">所有年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
         
-        // 流程提取
         tplSel.innerHTML = '<option value="">所有流程</option>' + STATE.tpls.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     };
 
@@ -220,7 +232,7 @@
         finally { window.updateStatus(false); }
     };
 
-    window.deleteP = async (id) => { if(confirm("确定彻底删除此归档吗？")) { await fetch(API_URL, {method:"DELETE", body:JSON.stringify({id})}); window.loadData(); } };
+    window.deleteP = async (id) => { if(confirm("彻底删除不可恢复，确定？")) { await fetch(API_URL, {method:"DELETE", body:JSON.stringify({id})}); window.loadData(); } };
 
     window.switchView = (v) => {
         document.getElementById("viewHome").style.display = v==='home'?'block':'none';
