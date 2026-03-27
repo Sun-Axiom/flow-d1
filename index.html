@@ -3,209 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Manager Pro</title>
+    <title>项目流管理器 V1.0.15</title>
     <style>
-        :root {
-            --bg-color: #fafafa;
-            --nav-bg: rgba(255, 255, 255, 0.8);
-            --card-bg: #ffffff;
-            --text-main: #262626;
-            --text-sub: #8e8e8e;
-            --border-color: #dbdbdb;
-            --accent-blue: #0095f6;
-            --ins-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            --radius: 12px;
-            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+        :root { 
+            --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
+            --text-main: #262626; --text-sub: #8c8c8c; --border-color: #eef0f2; 
+            --input-bg: #fafafa; --modal-bg: rgba(0, 0, 0, 0.6); 
+            --step-bg: #f4f4f4; --step-border: #d1d1d1;
+            --prog-doing: #1890ff; --prog-done: #52c41a; --danger: #ff4d4f;
         }
-
-        [data-theme="dark"] {
-            --bg-color: #000000;
-            --nav-bg: rgba(0, 0, 0, 0.75);
-            --card-bg: #121212;
-            --text-main: #f5f5f5;
-            --text-sub: #a8a8a8;
-            --border-color: #262626;
-            --shadow: 0 4px 20px rgba(0,0,0,0.4);
+        [data-theme="dark"] { 
+            --bg-color: #121212; --nav-bg: rgba(30, 30, 30, 0.9); --card-bg: #1e1e1e; 
+            --text-main: #e0e0e0; --text-sub: #aaaaaa; --border-color: #333333; 
+            --input-bg: #2d2d2d; --modal-bg: rgba(0, 0, 0, 0.85);
+            --step-bg: #2a2a2a; --step-border: #444;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; }
         
-        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; transition: background 0.3s; }
+        .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
+        .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .logo-text { font-size: 20px; font-weight: 800; }
 
-        /* Navigation - Ins Style */
-        .nav-header { 
-            height: 60px; 
-            background: var(--nav-bg); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; 
-            justify-content: center; 
-            position: sticky; 
-            top: 0; 
-            z-index: 1000; 
-        }
-        .nav-content { width: 100%; max-width: 935px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .view-section { display: none; max-width: 1200px; margin: 25px auto; padding: 0 20px; }
+        .view-active { display: block; }
         
-        .logo-text { 
-            font-size: 22px; 
-            font-weight: 800; 
-            letter-spacing: -1px;
-            background: var(--ins-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            cursor: pointer;
-        }
-
-        /* Layout */
-        .main-container { max-width: 935px; margin: 0 auto; padding: 30px 20px; }
-        .view-section { display: none; }
-        .view-active { display: block; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Grid & Cards */
-        .grid-container { display: grid; gap: 28px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .btn-black { background: #262626; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        .btn-theme { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 8px; font-size: 12px; }
         
-        .card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-color); 
-            border-radius: var(--radius); 
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.2s;
-        }
+        .grid-container { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; position: relative; }
+        .card-arch { padding: 10px 12px; font-size: 13px; border-radius: 8px; }
 
-        .card-header { padding: 14px; display: flex; align-items: center; gap: 10px; border-bottom: 0.5px solid var(--border-color); }
-        .avatar-circle { width: 32px; height: 32px; border-radius: 50%; background: var(--ins-gradient); padding: 2px; }
-        .avatar-inner { width: 100%; height: 100%; background: var(--card-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        /* 标签页样式 */
+        .tabs-nav { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; overflow-x: auto; padding-bottom: 2px; }
+        .tab-item { padding: 8px 16px; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 14px; color: var(--text-sub); border: 1px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+        .tab-active { color: var(--prog-doing); border: 1px solid var(--border-color); border-bottom: 2px solid var(--card-bg); margin-bottom: -2px; font-weight: bold; background: var(--card-bg); }
 
-        .card-body { padding: 16px; flex: 1; }
-        .project-title { font-weight: 700; margin-bottom: 4px; font-size: 15px; }
-        .project-meta { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; }
+        .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
+        .modal-box { background: var(--card-bg); padding: 25px; border-radius: 20px; width: 95%; max-width: 1000px; max-height: 85vh; overflow-y: auto; }
+        
+        .tpl-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .tpl-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .step-box { background: var(--step-bg); border: 1px solid var(--step-border); padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; position: relative; }
+        .edit-active .step-box { border-style: dashed; }
+        .btn-del-step { display: none; position: absolute; top: -6px; right: -6px; background: #000; color: #fff; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; line-height: 16px; text-align: center; border: 1px solid #fff; cursor: pointer; }
+        .edit-active .btn-del-step { display: block; }
 
-        /* Progress Bar - Ins Style */
-        .prog-container { margin: 15px 0; }
-        .prog-bar-bg { height: 3px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
-        .prog-bar-fill { height: 100%; background: var(--ins-gradient); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-
-        /* Inputs & Buttons */
-        .f-input { 
-            width: 100%; 
-            background: var(--bg-color); 
-            border: 1px solid var(--border-color); 
-            border-radius: 4px; 
-            padding: 8px 12px; 
-            font-size: 13px; 
-            color: var(--text-main);
-            outline: none;
-            margin-bottom: 10px;
-        }
-        .f-input:focus { border-color: var(--text-sub); }
-
-        .btn-primary { 
-            background: var(--accent-blue); 
-            color: white; 
-            border: none; 
-            padding: 7px 16px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            font-size: 13px; 
-            cursor: pointer;
-        }
-        .btn-ghost { background: none; border: none; color: var(--text-sub); cursor: pointer; font-size: 13px; }
-
-        /* Tabs */
-        .tabs-nav { display: flex; justify-content: center; gap: 40px; border-top: 1px solid var(--border-color); margin-top: 40px; }
-        .tab-item { 
-            padding-top: 15px; 
-            cursor: pointer; 
-            font-size: 12px; 
-            font-weight: 600; 
-            color: var(--text-sub); 
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border-top: 1px solid transparent;
-            margin-top: -1px;
-        }
-        .tab-active { color: var(--text-main); border-top: 1px solid var(--text-main); }
-
-        /* Modals */
-        .modal { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
-            display: none; align-items: center; justify-content: center; z-index: 2000; 
-            backdrop-filter: blur(4px); 
-        }
-        .modal-box { 
-            background: var(--card-bg); padding: 24px; border-radius: 12px; 
-            width: 90%; max-width: 400px; 
-        }
-
-        /* Status Dot */
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #52c41a; }
-        .dot-syncing { background: #ffad14; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.3; } }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #52c41a; margin-right: 5px; }
+        .dot-syncing { background: #fa8c16; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
 <div class="nav-header">
     <div class="nav-content">
-        <div class="logo-text" onclick="window.switchView('home')">FlowManager</div>
-        <div style="display:flex; gap:18px; align-items:center;">
-            <div id="syncIndicator" class="status-dot"></div>
-            <span style="cursor:pointer; font-size:18px;" onclick="window.toggleTheme()" id="themeBtn">☀️</span>
-            <button class="btn-primary" onclick="window.showAdd()">+ 新建项目</button>
+        <div onclick="window.switchView('home')" style="cursor:pointer">
+            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.15</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span id="syncIndicator" class="status-dot"></span>
+            <button id="themeBtn" class="btn-theme" onclick="window.toggleTheme()">☀️</button>
+            <button class="btn-black" style="background:#f0f0f0; color:#333;" onclick="window.showTplMgr()">⚙️ 流程设置</button>
+            <button class="btn-black" style="background:#eee; color:#333;" onclick="window.switchView('archive')">📂 归档项目库</button>
+            <button class="btn-black" onclick="window.showAdd()">+ 新建项目</button>
         </div>
     </div>
 </div>
 
-<div class="main-container">
-    <div id="viewHome" class="view-section view-active">
-        <div id="projectList" class="grid-container"></div>
+<div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
+<div id="viewArchive" class="view-section">
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:20px;">
+        <select id="archYear" class="f-input" style="width:100px; margin-bottom:0;" onchange="window.renderArchive()"></select>
+        <input type="text" id="archSearch" class="f-input" style="flex:1; margin-bottom:0;" placeholder="搜索归档..." oninput="window.renderArchive()">
+        <button class="btn-black" onclick="window.switchView('home')">🏠 返回主页</button>
     </div>
-
-    <div id="viewArchive" class="view-section">
-        <div style="margin-bottom:24px; display:flex; gap:10px;">
-            <input type="text" id="archSearch" class="f-input" style="margin-bottom:0" placeholder="搜索已办结项目..." oninput="window.renderArchive()">
-        </div>
-        <div id="archiveGrid" class="grid-container"></div>
-    </div>
-
-    <div class="tabs-nav">
-        <div id="tabHome" class="tab-item tab-active" onclick="window.switchView('home')">🔳 正在运行</div>
-        <div id="tabArchive" class="tab-item" onclick="window.switchView('archive')">📋 归档库</div>
-        <div id="tabSettings" class="tab-item" onclick="window.showTplMgr()">⚙️ 流程设置</div>
-    </div>
+    <div id="archiveGrid" class="grid-container" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px;"></div>
 </div>
 
-<div id="addModal" class="modal"><div class="modal-box">
-    <h3 style="margin-bottom:16px">新建项目</h3>
+<div id="tplModal" class="modal"><div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3>⚙️ 流程模板分类管理</h3>
+        <div style="display:flex; gap:8px;">
+            <button id="tplEditBtn" class="btn-black" style="background:#f0f0f0; color:#333; border:1px solid #ccc" onclick="window.toggleTplEdit()">✍️ 修改模式</button>
+            <button id="tplAddTabBtn" class="btn-black" style="display:none; background:#52c41a" onclick="window.addCategory()">+ 新分类</button>
+            <button id="tplAddBtn" class="btn-black" style="display:none" onclick="window.addNewTpl()">+ 新模板</button>
+        </div>
+    </div>
+    <div id="tabsNav" class="tabs-nav"></div>
+    <div id="tplList"></div>
+    <button class="btn-black" style="width:100%; margin-top:15px; justify-content:center" onclick="window.closeModal('tplModal')">完成并退出</button>
+</div></div>
+
+<div id="addModal" class="modal"><div class="modal-box" style="max-width:400px;">
+    <h3>✨ 新建项目</h3><br>
     <input type="text" id="ipt_n" class="f-input" placeholder="项目名称">
     <select id="ipt_tpl" class="f-input"></select>
     <input type="text" id="ipt_un" class="f-input" placeholder="执行单位">
     <input type="number" id="ipt_am" class="f-input" placeholder="预算金额">
-    <div style="display:flex; gap:10px; margin-top:10px;">
-        <button class="btn-primary" style="flex:1" onclick="window.addP()">创建</button>
-        <button class="btn-ghost" onclick="window.closeModal('addModal')">取消</button>
-    </div>
+    <button class="btn-black" style="width:100%; justify-content:center" onclick="window.addP()">确定创建</button>
 </div></div>
 
-<div id="tplModal" class="modal"><div class="modal-box" style="max-width:600px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3>流程模板设置</h3>
-        <button class="btn-primary" onclick="window.addNewTpl()">+ 新增</button>
-    </div>
-    <div id="tplList" style="max-height:400px; overflow-y:auto;"></div>
-    <button class="btn-ghost" style="width:100%; margin-top:15px; text-align:center" onclick="window.closeModal('tplModal')">完成</button>
-</div></div>
+<div id="historyModal" class="modal"><div class="modal-box" style="max-width:400px;"><h3 id="histTitle">⏳ 记录</h3><div id="histContent"></div><button class="btn-black" style="width:100%; margin-top:20px; justify-content:center" onclick="window.closeModal('historyModal')">关闭</button></div></div>
 
 <script>
     const API_URL = "https://api-flow.roll.ccwu.cc";
     let STATE = { all: [], tpls: [] };
+    let CUR_TAB = "默认分类";
+    let IS_TPL_EDITING = false;
 
     window.onload = () => { window.initTheme(); window.loadData(); };
 
@@ -216,185 +123,188 @@
                 fetch(API_URL).then(r => r.json()).catch(() => []),
                 fetch(API_URL + "/templates").then(r => r.json()).catch(() => [])
             ]);
-            STATE.all = pRes || [];
-            STATE.tpls = tRes || [];
-            window.renderHome();
-            window.renderArchive();
-            window.updateTplSelect();
+            STATE.all = pRes || []; 
+            STATE.tpls = (tRes || []).map(t => ({...t, cat: t.cat || "默认分类"}));
+            window.renderHome(); window.updateFilters(); window.renderArchive(); window.updateTplSelect();
+            if(document.getElementById("tplModal").style.display === "flex") window.renderTplList();
         } finally { window.updateStatus(false); }
     };
 
-    window.renderHome = () => {
-        const container = document.getElementById("projectList");
-        const activeProjects = STATE.all.filter(p => !p.isArchived);
+    // --- 核心：模板管理逻辑修复 ---
+    window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
+
+    window.toggleTplEdit = () => {
+        IS_TPL_EDITING = !IS_TPL_EDITING;
+        document.getElementById("tplEditBtn").innerText = IS_TPL_EDITING ? "🔒 退出修改" : "✍️ 修改模式";
+        document.getElementById("tplAddBtn").style.display = IS_TPL_EDITING ? "block" : "none";
+        document.getElementById("tplAddTabBtn").style.display = IS_TPL_EDITING ? "block" : "none";
+        window.renderTplList();
+    };
+
+    window.renderTplList = () => {
+        const categories = [...new Set(STATE.tpls.map(t => t.cat))];
+        if(!categories.includes(CUR_TAB)) CUR_TAB = categories[0] || "默认分类";
+
+        const nav = document.getElementById("tabsNav");
+        nav.innerHTML = categories.map(c => `
+            <div class="tab-item ${c === CUR_TAB ? 'tab-active' : ''}" onclick="window.switchTab('${c}')">
+                <span contenteditable="${IS_TPL_EDITING}" onblur="window.renameCategory('${c}', this.innerText)" onclick="event.stopPropagation()">${c}</span>
+                ${IS_TPL_EDITING && categories.length > 1 ? `<span style="color:var(--danger); font-weight:bold" onclick="event.stopPropagation(); window.delCategory('${c}')">×</span>` : ''}
+            </div>
+        `).join('');
+
+        const list = document.getElementById("tplList");
+        list.className = IS_TPL_EDITING ? "edit-active" : "";
+        const filtered = STATE.tpls.filter(t => t.cat === CUR_TAB);
         
-        container.innerHTML = activeProjects.map(p => {
-            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name: "未知流程", steps: '[]'};
+        list.innerHTML = filtered.map(t => {
+            const steps = JSON.parse(t.steps || "[]");
+            return `
+                <div class="tpl-item">
+                    <div style="margin-bottom:10px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+                        <span>📂 <span contenteditable="${IS_TPL_EDITING}" onblur="window.saveTplName('${t.id}', this.innerText)">${t.name}</span></span>
+                        ${IS_TPL_EDITING ? `<button class="btn-black" style="background:var(--danger); padding:4px 8px; font-size:10px;" onclick="window.delTpl('${t.id}')">删除此模板</button>` : ''}
+                    </div>
+                    <div class="tpl-wrap">
+                        ${steps.map((s, i) => `
+                            <div class="step-box">
+                                <b style="color:#999">${i+1}</b>
+                                <span contenteditable="${IS_TPL_EDITING}" onblur="window.editStep('${t.id}', ${i}, this.innerText)">${s}</span>
+                                <div class="btn-del-step" onclick="window.removeStep('${t.id}', ${i})">×</div>
+                            </div>
+                        `).join('<span style="color:#ddd">→</span>')}
+                        ${IS_TPL_EDITING ? `<button class="btn-black" style="background:none; border:1px dashed #aaa; color:#aaa; padding:2px 6px;" onclick="window.addStep('${t.id}')">+ 步骤</button>` : ''}
+                    </div>
+                </div>`;
+        }).join(filtered.length ? '' : '<div style="color:#999; padding:20px; text-align:center;">此分类下没有模板，请点击右上角新增</div>');
+    };
+
+    window.switchTab = (c) => { if(!IS_TPL_EDITING) { CUR_TAB = c; window.renderTplList(); } else { CUR_TAB = c; window.renderTplList(); } };
+
+    window.addCategory = () => {
+        const name = prompt("请输入新分类名称:");
+        if(name) {
+            if(STATE.tpls.some(t => t.cat === name)) return alert("分类已存在");
+            CUR_TAB = name;
+            window.addNewTpl(); // 分类必须伴随一个模板存在
+        }
+    };
+
+    window.renameCategory = async (oldName, newName) => {
+        if(!newName || oldName === newName) return;
+        const targets = STATE.tpls.filter(t => t.cat === oldName);
+        for(let t of targets) {
+            t.cat = newName;
+            await window.apiPost("/templates", t);
+        }
+        CUR_TAB = newName;
+        window.loadData();
+    };
+
+    window.delCategory = async (cat) => {
+        const tpls = STATE.tpls.filter(t => t.cat === cat);
+        if(tpls.length > 0) return alert("请先删除该分类下的所有模板");
+        // 逻辑上：分类是基于模板 cat 字段动态生成的，模板没了分类自然就没了
+    };
+
+    window.addNewTpl = async () => {
+        const n = prompt("模板名称:");
+        if(n) {
+            await window.apiPost("/templates", {id:'t-'+Date.now(), name:n, cat: CUR_TAB, steps:JSON.stringify(["第一步"])});
+            await window.loadData();
+        }
+    };
+
+    window.delTpl = async (id) => { 
+        if(confirm("确定彻底删除此流程模板吗？")) { 
+            await fetch(`${API_URL}/templates/delete`, {
+                method:"POST", 
+                headers:{"Content-Type":"application/json"}, 
+                body:JSON.stringify({id})
+            }); 
+            await window.loadData(); 
+        } 
+    };
+
+    window.saveTplName = async (id, val) => { const t = STATE.tpls.find(x=>x.id===id); t.name=val; await window.apiPost("/templates", t); };
+    window.editStep = async (id, idx, val) => { const t = STATE.tpls.find(x=>x.id===id); let s = JSON.parse(t.steps); s[idx]=val; t.steps=JSON.stringify(s); await window.apiPost("/templates", t); };
+    window.addStep = async (id) => { const t = STATE.tpls.find(x=>x.id===id); let s = JSON.parse(t.steps); s.push("新步骤"); t.steps=JSON.stringify(s); await window.apiPost("/templates", t); window.renderTplList(); };
+    window.removeStep = async (id, idx) => { const t = STATE.tpls.find(x=>x.id===id); let s = JSON.parse(t.steps); s.splice(idx,1); t.steps=JSON.stringify(s); await window.apiPost("/templates", t); window.renderTplList(); };
+
+    // --- 基础通用逻辑 ---
+    window.apiPost = async (path, data) => { window.updateStatus(true); await fetch(API_URL+path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)}); window.updateStatus(false); };
+    window.renderHome = () => {
+        const home = document.getElementById("projectList");
+        home.innerHTML = STATE.all.filter(p => !p.isArchived).map(p => {
+            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name:"-", steps:'[]'};
             const steps = JSON.parse(tpl.steps || "[]");
             const pct = Math.min(Math.round(((p.s + 1) / steps.length) * 100), 100);
-            
-            return `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="avatar-circle"><div class="avatar-inner">${p.n.substring(0,1)}</div></div>
-                        <div style="flex:1; font-weight:600; font-size:14px;">${p.n}</div>
-                        <div class="btn-ghost" style="font-size:18px" onclick="window.archiveProject('${p.id}')">🔘</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="project-meta">🏢 ${p.un || '未知单位'} · 💰 ¥${(p.am||0).toLocaleString()}</div>
-                        <div class="prog-container">
-                            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:5px;">
-                                <span>当前阶段: ${steps[p.s] || '完成'}</span>
-                                <span>${pct}%</span>
-                            </div>
-                            <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
-                        </div>
-                        <select class="f-input" onchange="window.updateStep('${p.id}', this.value)">
-                            ${steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
-                        </select>
-                        <textarea class="f-input" style="height:40px; border:none; background:#f9f9f9; resize:none" placeholder="添加备注..." onblur="window.saveMemo('${p.id}', this.value)">${p.memo || ''}</textarea>
-                    </div>
+            return `<div class="card">
+                <div style="font-weight:800; font-size:15px; margin-bottom:4px;">📦 ${p.n}</div>
+                <div style="font-size:11px; color:var(--text-sub); margin-bottom:8px;">🏢 ${p.un || '未填'} | 📑 ${tpl.name} | 💰 ¥${(p.am||0).toLocaleString()}</div>
+                <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%; background:${pct===100?'var(--prog-done)':'var(--prog-doing)'}"></div></div>
+                <select class="f-input" onchange="window.updateStep('${p.id}', this.value)">
+                    ${steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
+                </select>
+                <textarea class="f-input" style="resize:vertical; min-height:32px; height:32px; overflow:hidden;" placeholder="备注..." onblur="window.saveMemo('${p.id}', this.value)">${p.memo || ''}</textarea>
+                <div style="display:flex; gap:6px;">
+                    <button class="f-input" style="flex:0.2; cursor:pointer; background:none; border:1px solid var(--border-color);" onclick="window.showHistory('${p.id}')">⏳</button>
+                    <button class="f-input" style="flex:1; cursor:pointer; background:none; border:1px solid var(--border-color); color:var(--text-sub)" onclick="window.archiveProject('${p.id}')">办结归档</button>
                 </div>
-            `;
+            </div>`;
         }).join('');
     };
 
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const q = document.getElementById("archSearch").value.toLowerCase();
-        const archProjects = STATE.all.filter(p => p.isArchived && p.n.toLowerCase().includes(q));
-        
-        grid.innerHTML = archProjects.map(p => `
-            <div class="card" style="opacity:0.8">
-                <div class="card-body">
-                    <div style="display:flex; justify-content:space-between">
-                        <div class="project-title">${p.n}</div>
-                        <span style="cursor:pointer" onclick="window.confirmDelete('${p.id}')">🗑️</span>
-                    </div>
-                    <div class="project-meta">已归档于 ${new Date(p.archivedAt || Date.now()).toLocaleDateString()}</div>
-                    <button class="btn-ghost" style="padding:0; color:var(--accent-blue)" onclick="window.unarchive('${p.id}')">恢复项目</button>
+        grid.innerHTML = STATE.all.filter(p => p.isArchived).filter(p => p.n.toLowerCase().includes(q) || (p.un && p.un.toLowerCase().includes(q))).map(p => {
+            const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name:"-"};
+            return `<div class="card card-arch" style="opacity:0.9">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <b style="cursor:pointer; color:var(--prog-doing); font-size:13px;" onclick="window.unarchive('${p.id}')">📁 ${p.n}</b>
+                    <span style="cursor:pointer; font-size:14px; color:var(--text-sub);" onclick="window.confirmDelete('${p.id}')">🗑️</span>
                 </div>
-            </div>
+                <div style="font-size:11px; margin-top:3px;">🏢 ${p.un || '-'} | 💰 ¥${(p.am||0).toLocaleString()}</div>
+                <div style="font-size:11px; color:var(--text-sub); border-top:1px dashed var(--border-color); margin-top:5px; padding-top:5px;">
+                    类型：${tpl.name}<br>时间：${new Date(p.createdAt).toLocaleDateString()} - ${p.archivedAt ? new Date(p.archivedAt).toLocaleDateString() : '-'}
+                </div>
+            </div>`;
+        }).join('');
+    };
+
+    window.confirmDelete = async (id) => { if(confirm("彻底删除记录？")) { await fetch(API_URL+"/delete",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id})}); await window.loadData(); } };
+    window.archiveProject = async (id) => { const p = STATE.all.find(x=>x.id===id); p.isArchived=1; p.archivedAt=Date.now(); await window.apiPost("/", p); window.loadData(); };
+    window.unarchive = async (id) => { const p = STATE.all.find(x=>x.id===id); p.isArchived=0; await window.apiPost("/", p); window.loadData(); };
+    window.updateStep = async (id, val) => { const p = STATE.all.find(x=>x.id===id); p.s=Number(val); if(!p.logs) p.logs=[]; p.logs.push({s:p.s, t:Date.now()}); await window.apiPost("/", p); window.renderHome(); };
+    window.saveMemo = async (id, val) => { const p = STATE.all.find(x=>x.id===id); p.memo=val; await window.apiPost("/", p); };
+    window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; window.loadData(); };
+    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
+    window.closeModal = (id) => { document.getElementById(id).style.display = "none"; window.loadData(); };
+    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
+    window.updateTplSelect = () => {
+        const grouped = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {});
+        document.getElementById("ipt_tpl").innerHTML = Object.keys(grouped).map(cat => `
+            <optgroup label="${cat}">${grouped[cat].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>
         `).join('');
     };
-
-    // --- Core Logic ---
-    window.apiPost = async (path, data) => { 
-        window.updateStatus(true); 
-        await fetch(API_URL+path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)}); 
-        window.updateStatus(false); 
-    };
-
-    window.updateStep = async (id, val) => {
-        const p = STATE.all.find(x=>x.id===id);
-        p.s = Number(val);
-        if(!p.logs) p.logs = [];
-        p.logs.push({s: p.s, t: Date.now()});
-        await window.apiPost("/", p);
-        window.renderHome();
-    };
-
-    window.archiveProject = async (id) => {
-        const p = STATE.all.find(x=>x.id===id);
-        p.isArchived = 1;
-        p.archivedAt = Date.now();
-        await window.apiPost("/", p);
-        window.loadData();
-    };
-
-    window.unarchive = async (id) => {
-        const p = STATE.all.find(x=>x.id===id);
-        p.isArchived = 0;
-        await window.apiPost("/", p);
-        window.loadData();
-    };
-
     window.addP = async () => {
-        const name = document.getElementById("ipt_n").value;
-        if(!name) return alert("请输入名称");
-        const data = {
-            id: 'p-'+Date.now(),
-            n: name,
-            tpl: document.getElementById("ipt_tpl").value,
-            un: document.getElementById("ipt_un").value,
-            am: Number(document.getElementById("ipt_am").value),
-            s: 0,
-            isArchived: 0,
-            createdAt: Date.now(),
-            logs: [{s:0, t:Date.now()}]
-        };
-        await window.apiPost("/", data);
+        const n = document.getElementById("ipt_n").value;
+        await window.apiPost("/", {id:'p-'+Date.now(), n, tpl:document.getElementById("ipt_tpl").value, un:document.getElementById("ipt_un").value, am:Number(document.getElementById("ipt_am").value), s:0, isArchived:0, createdAt:Date.now(), logs:[{s:0, t:Date.now()}]});
         window.closeModal("addModal");
     };
-
-    // --- UI Helpers ---
-    window.switchView = (v) => {
-        document.querySelectorAll('.view-section').forEach(s => s.classList.remove('view-active'));
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('tab-active'));
-        if(v === 'home') {
-            document.getElementById('viewHome').classList.add('view-active');
-            document.getElementById('tabHome').classList.add('tab-active');
-        } else {
-            document.getElementById('viewArchive').classList.add('view-active');
-            document.getElementById('tabArchive').classList.add('tab-active');
-        }
+    window.initTheme = () => { const t = localStorage.getItem('flow-theme') || (new Date().getHours() >= 18 ? 'dark' : 'light'); window.applyTheme(t); };
+    window.toggleTheme = () => { window.applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); };
+    window.applyTheme = (t) => { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('flow-theme', t); document.getElementById('themeBtn').innerText = t === 'dark' ? '🌙' : '☀️'; };
+    window.updateFilters = () => {
+        const archP = STATE.all.filter(p=>p.isArchived); const years = [...new Set(archP.map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
+        document.getElementById("archYear").innerHTML = '<option value="">所有年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
     };
-
-    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
-    window.showTplMgr = () => { window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
-    window.closeModal = (id) => { document.getElementById(id).style.display = "none"; window.loadData(); };
-
-    window.updateTplSelect = () => {
-        const sel = document.getElementById("ipt_tpl");
-        sel.innerHTML = STATE.tpls.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-    };
-
-    window.updateStatus = (s) => {
-        document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
-    };
-
-    window.renderTplList = () => {
-        const list = document.getElementById("tplList");
-        list.innerHTML = STATE.tpls.map(t => `
-            <div style="padding:12px; border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px;">
-                <div style="font-weight:600; margin-bottom:8px;">${t.name}</div>
-                <div style="font-size:11px; color:var(--text-sub)">步骤数: ${JSON.parse(t.steps).length}</div>
-            </div>
-        `).join('') || '暂无模板';
-    };
-
-    window.initTheme = () => {
-        const t = localStorage.getItem('flow-theme') || (new Date().getHours() >= 18 ? 'dark' : 'light');
-        window.applyTheme(t);
-    };
-
-    window.toggleTheme = () => {
-        const cur = document.documentElement.getAttribute('data-theme');
-        window.applyTheme(cur === 'dark' ? 'light' : 'dark');
-    };
-
-    window.applyTheme = (t) => {
-        document.documentElement.setAttribute('data-theme', t);
-        localStorage.setItem('flow-theme', t);
-        document.getElementById('themeBtn').innerText = t === 'dark' ? '🌙' : '☀️';
-    };
-
-    window.saveMemo = async (id, val) => {
-        const p = STATE.all.find(x=>x.id===id);
-        if(p.memo === val) return;
-        p.memo = val;
-        await window.apiPost("/", p);
-    };
-
-    window.confirmDelete = async (id) => {
-        if(confirm("确定彻底删除该记录？")) {
-            await fetch(API_URL+"/delete", {
-                method:"POST", 
-                headers:{"Content-Type":"application/json"}, 
-                body:JSON.stringify({id})
-            });
-            await window.loadData();
-        }
+    window.showHistory = (id) => {
+        const p = STATE.all.find(x=>x.id===id); const tpl = STATE.tpls.find(t=>t.id===p.tpl); const steps = JSON.parse(tpl.steps || "[]");
+        document.getElementById("histTitle").innerText = `⏳ ${p.n}`;
+        document.getElementById("histContent").innerHTML = (p.logs||[]).slice(-3).reverse().map(l => `<div style="border-left:2px solid #ddd; padding-left:10px; margin-bottom:10px;"><b>${steps[l.s] || '未知'}</b><div style="font-size:10px; color:#999;">${new Date(l.t).toLocaleString()}</div></div>`).join('') || '无记录';
+        document.getElementById("historyModal").style.display = "flex";
     };
 </script>
 </body>
