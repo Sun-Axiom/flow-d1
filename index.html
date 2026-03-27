@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目流管理器 v1.6.1 | D1 Storage</title>
+    <style>
+        /* 继承并优化你的精美 UI */
+        :root { --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; --text-main: #262626; --text-sub: #8c8c8c; --border-color: #eef0f2; --input-bg: #fafafa; --modal-bg: rgba(0, 0, 0, 0.6); }
+        [data-theme="dark"] { --bg-color: #121212; --nav-bg: rgba(30, 30, 30, 0.9); --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #aaaaaa; --border-color: #333333; --input-bg: #2d2d2d; --modal-bg: rgba(0, 0, 0, 0.85); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; transition: background-color 0.3s; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; }
+        .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
+        .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .logo-text { font-size: 20px; font-weight: 800; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .dot-online { background: #52c41a; }
+        .dot-syncing { background: #fa8c16; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        .view-section { display: none; max-width: 1200px; margin: 25px auto; padding: 0 20px; }
+        .view-active { display: block; }
+        .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .pin-icon { position: absolute; top: 12px; right: 12px; cursor: pointer; opacity: 0.3; filter: grayscale(1); }
+        .pin-active { opacity: 1; filter: none; }
+        .card-body { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .prog-track { height: 6px; background: var(--input-bg); border-radius: 3px; overflow: hidden; margin: 5px 0; }
+        .prog-fill { height: 100%; transition: width 0.6s ease; }
+        .btn-gradient { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+        .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 8px; border-radius: 7px; outline: none; font-size: 13px; }
+        .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
+        .modal-box { background: var(--card-bg); padding: 25px; border-radius: 18px; width: 90%; max-width: 400px; }
+    </style>
+</head>
+<body>
+
+<div class="nav-header">
+    <div class="nav-content">
+        <div class="logo-text" onclick="switchView('home')">🚀 Flow D1 <span style="font-size:10px; color:var(--text-sub)">v1.6.1</span></div>
+        <div id="navButtons" style="display:flex; align-items: center; gap:10px;">
+            <span id="syncIndicator" class="status-dot dot-online"></span>
+            <button class="btn-gradient" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color)" onclick="switchView('archive')">📂 归档</button>
+            <button class="btn-gradient" onclick="showAdd()">✨ 新建</button>
+        </div>
+    </div>
+</div>
+
+<div id="viewHome" class="view-section view-active">
+    <div id="projectList" class="grid-container"></div>
+</div>
+
+<div id="viewArchive" class="view-section">
+    <h3 style="margin-bottom:20px;">已归档项目</h3>
+    <div id="archiveGrid" class="grid-container"></div>
+    <button class="btn-gradient" style="margin-top:20px; background:#666" onclick="switchView('home')">返回主页</button>
+</div>
+
+<div id="addModal" class="modal"><div class="modal-box">
+    <h3>✨ 新建项目</h3><br>
+    <input type="text" id="n" class="f-input" placeholder="项目名称" style="width:100%; margin-bottom:12px;">
+    <input type="text" id="un" class="f-input" placeholder="归属单位" style="width:100%; margin-bottom:12px;">
+    <input type="number" id="am" class="f-input" placeholder="预算金额" style="width:100%; margin-bottom:20px;">
+    <button class="btn-gradient" style="width:100%" onclick="addP()">确定创建</button>
+    <button onclick="closeModal('addModal')" style="width:100%; background:none; border:none; color:var(--text-sub); margin-top:10px; cursor:pointer;">取消</button>
+</div></div>
+
+<script>
+    const API_URL = "https://api-flow.roll.ccwu.cc"; 
+    const GLOBAL_TPL_URL = "https://raw.githubusercontent.com/Sun-Axiom/workflow-data/refs/heads/main/template.json";
+    
+    let DATA = { all: [], templates: {} };
+
+    async function load() {
+        updateStatusDot(true);
+        try {
+            const tRes = await fetch(GLOBAL_TPL_URL);
+            DATA.templates = await tRes.json();
+            const res = await fetch(API_URL);
+            DATA.all = await res.json();
+            render();
+        } catch(e) { console.error(e); } 
+        finally { updateStatusDot(false); }
+    }
+
+    function render() {
+        renderGrid('projectList', DATA.all.filter(p => !p.isArchived).sort((a,b) => b.isPinned - a.isPinned || b.createdAt - a.createdAt));
+        renderGrid('archiveGrid', DATA.all.filter(p => p.isArchived).sort((a,b) => b.archivedAt - a.archivedAt));
+    }
+
+    function renderGrid(containerId, list) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = list.length ? "" : "<p style='color:var(--text-sub)'>暂无项目</p>";
+        list.forEach(p => {
+            const steps = DATA.templates[p.tpl] || ["默认步骤"];
+            const pct = Math.min(Math.round(((p.s + 1) / steps.length) * 100), 100);
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+                ${!p.isArchived ? `<div class="pin-icon ${p.isPinned?'pin-active':''}" onclick="updateField('${p.id}', 'isPinned', ${!p.isPinned})">📌</div>` : ''}
+                <div class="card-body">
+                    <div class="p-name">📦 ${p.n}</div>
+                    <div style="font-size:11px; color:var(--text-sub)">🏢 ${p.un || '-'} | 💰 ¥${p.am || '0'}</div>
+                    <div class="prog-track"><div class="prog-fill" style="width:${pct}%; background:${pct==100?'#52c41a':'#1890ff'}"></div></div>
+                    <select class="f-input" onchange="updateStep('${p.id}', +this.value)">
+                        ${steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
+                    </select>
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <button class="f-input" style="flex:1; cursor:pointer" onclick="updateField('${p.id}', 'isArchived', ${!p.isArchived})">${p.isArchived?'恢复':'归档'}</button>
+                        ${p.isArchived ? `<button class="f-input" style="color:#ff4d4f; cursor:pointer" onclick="deleteP('${p.id}')">彻底删除</button>` : ''}
+                    </div>
+                </div>`;
+            container.appendChild(card);
+        });
+    }
+
+    async function addP() {
+        const n = document.getElementById("n").value;
+        if(!n) return;
+        const newP = {
+            id: crypto.randomUUID(), n, tpl: Object.keys(DATA.templates)[0],
+            un: document.getElementById("un").value, am: document.getElementById("am").value,
+            s: 0, nt: "", isPinned: false, isArchived: false, logs: ["项目创建"], createdAt: Date.now()
+        };
+        await postData(newP);
+        closeModal('addModal');
+        load();
+    }
+
+    async function updateStep(id, val) {
+        const p = DATA.all.find(x => x.id === id);
+        p.s = val;
+        p.logs.push(`[${new Date().toLocaleString()}] 步骤更新`);
+        await postData(p);
+        render();
+    }
+
+    async function updateField(id, field, val) {
+        const p = DATA.all.find(x => x.id === id);
+        p[field] = val;
+        if(field === 'isArchived') p.archivedAt = val ? Date.now() : null;
+        await postData(p);
+        render();
+    }
+
+    async function deleteP(id) {
+        if(!confirm("确定彻底删除？数据无法找回。")) return;
+        updateStatusDot(true);
+        await fetch(API_URL, { method: "DELETE", headers: {"Content-Type":"application/json"}, body: JSON.stringify({id}) });
+        load();
+    }
+
+    async function postData(p) {
+        updateStatusDot(true);
+        await fetch(API_URL, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(p) });
+        updateStatusDot(false);
+    }
+
+    function switchView(v) {
+        document.getElementById('viewHome').className = 'view-section' + (v=='home'?' view-active':'');
+        document.getElementById('viewArchive').className = 'view-section' + (v=='archive'?' view-active':'');
+    }
+
+    function showAdd() { document.getElementById("addModal").style.display = "flex"; }
+    function closeModal(id) { document.getElementById(id).style.display = "none"; }
+    function updateStatusDot(s) { document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot dot-online"; }
+
+    // 自动夜间模式
+    const hr = new Date().getHours();
+    if (hr >= 18 || hr < 6) document.documentElement.setAttribute('data-theme', 'dark');
+
+    load();
+</script>
+</body>
+</html>
