@@ -1,4 +1,4 @@
-# Project Flow Manager (Secure Edition)
+# 项目流管理器
 > **V1.3.12** | 极简主义风格的项目进度管理利器。
 
 基于 **Cloudflare Workers + D1 + Pages** 构建的轻量级项目追踪系统。支持多级流程自定义、可视化进度条、数据归档及物理删除，并集成 `X-Auth-Token` 身份验证保障数据安全。
