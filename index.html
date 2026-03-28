@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.27</title>
+    <title>项目流管理器 V1.0.27-Stable</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -31,11 +31,9 @@
         .btn-theme { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
         .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 8px; font-size: 12px; }
         
-        /* 卡片与网格 */
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
         .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         
-        /* 归档卡片专用（更紧凑） */
         .archive-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         .archive-card { padding: 15px; background: var(--input-bg); border-style: dashed; }
         .btn-delete-x { position: absolute; top: 10px; right: 10px; color: var(--danger); cursor: pointer; font-size: 18px; font-weight: bold; opacity: 0.5; transition: 0.2s; }
@@ -44,7 +42,6 @@
         .prog-bar-bg { background: var(--step-bg); height: 8px; border-radius: 4px; margin: 12px 0; overflow: hidden; border: 1px solid var(--border-color); }
         .prog-bar-fill { height: 100%; transition: width 0.4s ease, background 0.3s ease; }
 
-        /* 模板编辑器样式 */
         .tabs-nav { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; overflow-x: auto; padding-bottom: 2px; }
         .tab-item { padding: 8px 16px; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 14px; color: var(--text-sub); border: 1px solid transparent; white-space: nowrap; }
         .tab-active { color: var(--prog-doing); border: 1px solid var(--border-color); border-bottom: 2px solid var(--card-bg); margin-bottom: -2px; font-weight: bold; background: var(--card-bg); }
@@ -67,7 +64,7 @@
 <div class="nav-header">
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
-            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.27</span>
+            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.27-Fix</span>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -168,28 +165,85 @@
         document.querySelectorAll('.memo-area').forEach(el => window.autoSize(el));
     };
 
+    // --- 核心修复：添加并保存项目 ---
     window.addP = async () => {
         const n = document.getElementById("ipt_n").value.trim();
         const tplId = document.getElementById("ipt_tpl").value;
         if(!n || !tplId) return alert("请填写名称并选择流程");
-        const newP = { id: 'p-' + Date.now(), n: n, tpl: tplId, un: document.getElementById("ipt_un").value.trim(), am: Number(document.getElementById("ipt_am").value) || 0, s: 0, isArchived: 0, createdAt: Date.now() };
-        STATE.all.unshift(newP); 
-        window.renderHome();
-        window.closeModal("addModal");
-        document.getElementById("ipt_n").value = "";
-        await window.apiPost("/", newP);
+        
+        const newP = { 
+            id: 'p-' + Date.now(), 
+            n: n, 
+            tpl: tplId, 
+            un: document.getElementById("ipt_un").value.trim(), 
+            am: Number(document.getElementById("ipt_am").value) || 0, 
+            s: 0, 
+            isArchived: 0, 
+            createdAt: Date.now() 
+        };
+
+        window.updateStatus(true);
+        try {
+            const res = await fetch(API_URL + "/", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify(newP)
+            });
+            if (res.ok) {
+                STATE.all.unshift(newP); 
+                window.renderHome();
+                window.closeModal("addModal");
+                document.getElementById("ipt_n").value = "";
+                document.getElementById("ipt_un").value = "";
+                document.getElementById("ipt_am").value = "";
+            } else {
+                alert("保存失败，请检查后端服务状态");
+            }
+        } catch (e) {
+            alert("网络错误，无法连接到 API");
+        } finally {
+            window.updateStatus(false);
+        }
     };
 
-    // --- 归档库优化版本 ---
+    // --- 核心修复：更新进度并保存 ---
+    window.updateStep = async (id, v) => { 
+        const p = STATE.all.find(x => x.id === id); 
+        if (!p) return;
+        const oldStep = p.s;
+        p.s = Number(v); 
+        window.renderHome(); // 先渲染，保证 UI 响应快
+        try {
+            await window.apiPost("/", p); 
+        } catch(e) {
+            p.s = oldStep; // 失败回滚
+            window.renderHome();
+            alert("进度保存失败");
+        }
+    };
+
+    // --- 核心修复：保存备注 ---
+    window.saveMemo = async (id, v) => { 
+        const p = STATE.all.find(x => x.id === id); 
+        if (!p || p.memo === v) return; 
+        const oldMemo = p.memo;
+        p.memo = v; 
+        try {
+            await window.apiPost("/", p); 
+        } catch(e) {
+            p.memo = oldMemo;
+            alert("备注保存失败");
+        }
+    };
+
+    // --- 归档逻辑保持不变 ---
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const archP = STATE.all.filter(p => p.isArchived);
-        
         const years = [...new Set(archP.map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         const ySel = document.getElementById("archYear");
         const curY = ySel.value;
         ySel.innerHTML = '<option value="">年份</option>' + years.map(y => `<option value="${y}" ${curY==y?'selected':''}>${y}年</option>`).join('');
-
         const tplIds = [...new Set(archP.map(p => p.tpl))];
         const tSel = document.getElementById("archTpl");
         const curT = tSel.value;
@@ -197,7 +251,6 @@
             const t = STATE.tpls.find(x => x.id === id);
             return t ? `<option value="${t.id}" ${curT==t.id?'selected':''}>${t.name}</option>` : '';
         }).join('');
-
         const q = document.getElementById("archSearch").value.toLowerCase();
         const filtered = archP.filter(p => {
             const matchQ = p.n.toLowerCase().includes(q) || (p.un && p.un.toLowerCase().includes(q));
@@ -205,7 +258,6 @@
             const matchT = curT ? p.tpl === curT : true;
             return matchQ && matchY && matchT;
         });
-
         grid.innerHTML = filtered.map(p => {
             const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name:"-"};
             const dateStart = new Date(p.createdAt).toLocaleDateString();
@@ -240,7 +292,7 @@
     window.archiveProject = async (id) => {
         const p = STATE.all.find(x => x.id === id);
         p.isArchived = 1;
-        p.archivedAt = Date.now(); // 记录归档时间
+        p.archivedAt = Date.now();
         window.renderHome();
         await window.apiPost("/", p);
     };
@@ -253,7 +305,7 @@
         window.switchView('home');
     };
 
-    // --- 模板管理逻辑 (完全不动) ---
+    // --- 模板管理 (维持 V1.0.27 原样) ---
     window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
     window.toggleTplEdit = () => {
         IS_TPL_EDITING = !IS_TPL_EDITING;
@@ -276,19 +328,25 @@
         }).join(filtered.length ? '' : '<div style="color:#999; padding:30px; text-align:center;">暂无模板。</div>');
     };
 
-    // --- 辅助工具 ---
     window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
-    window.apiPost = async (p, d) => { window.updateStatus(true); await fetch(API_URL+p, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); window.updateStatus(false); };
-    window.updateStep = async (id, v) => { const p=STATE.all.find(x=>x.id===id); p.s=Number(v); window.renderHome(); await window.apiPost("/", p); };
+    window.apiPost = async (p, d) => { 
+        window.updateStatus(true); 
+        try {
+            const res = await fetch(API_URL+p, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); 
+            if(!res.ok) throw new Error("Sync Fail");
+            return await res.json();
+        } finally {
+            window.updateStatus(false); 
+        }
+    };
     window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; if(v==='archive') window.renderArchive(); else window.renderHome(); };
     window.updateTplSelect = () => { const grouped = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); document.getElementById("ipt_tpl").innerHTML = Object.keys(grouped).map(cat => `<optgroup label="${cat}">${grouped[cat].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); };
     window.autoSize = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
-    window.saveMemo = async (id, v) => { const p=STATE.all.find(x=>x.id===id); if(p.memo===v)return; p.memo=v; await window.apiPost("/", p); };
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
     window.closeModal = (id) => document.getElementById(id).style.display = "none";
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
     
-    // 模板微调
+    // 模板操作函数保持不变
     window.renameCategory = async (old, n) => { if(!n.trim() || old===n) return; for(let t of STATE.tpls.filter(x=>x.cat===old)){ t.cat=n; await window.apiPost("/templates", t); } window.loadData(); };
     window.saveTplName = async (id, v) => { const t=STATE.tpls.find(x=>x.id===id); t.name=v; await window.apiPost("/templates", t); };
     window.moveTplCategory = async (id, c) => { const t=STATE.tpls.find(x=>x.id===id); t.cat=c; await window.apiPost("/templates", t); window.loadData(); };
