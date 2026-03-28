@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.30</title>
+    <title>项目流管理器 V1.0.27-D1稳定版</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -122,6 +122,7 @@
 
     window.onload = () => { window.autoTheme(); window.loadData(); };
 
+    // 数据加载逻辑
     window.loadData = async () => {
         window.updateStatus(true);
         try {
@@ -139,6 +140,7 @@
         } finally { window.updateStatus(false); }
     };
 
+    // 渲染首页列表
     window.renderHome = () => {
         const home = document.getElementById("projectList");
         const active = STATE.all.filter(p => !p.isArchived);
@@ -165,11 +167,11 @@
         document.querySelectorAll('.memo-area').forEach(el => window.autoSize(el));
     };
 
+    // 创建项目
     window.addP = async () => {
         const n = document.getElementById("ipt_n").value.trim();
         const tplId = document.getElementById("ipt_tpl").value;
         if(!n || !tplId) return alert("请填写名称并选择流程");
-        // 补丁：确保不传 undefined
         const newP = { 
             id: 'p-' + Date.now(), 
             n: n, 
@@ -188,6 +190,7 @@
         await window.apiPost("/", newP);
     };
 
+    // 归档库逻辑
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const archP = STATE.all.filter(p => p.isArchived);
@@ -228,34 +231,21 @@
         }).join(filtered.length ? '' : '<div style="grid-column:1/-1; text-align:center; padding:50px; color:var(--text-sub)">无符合条件的归档项目。</div>');
     };
 
-    window.physicallyDelete = async (id) => {
-        if(!confirm("确定要物理删除该项目吗？此操作不可撤销。")) return;
-        window.updateStatus(true);
-        await fetch(API_URL + "/delete", { 
-            method: "POST", headers: {"Content-Type":"application/json"}, 
-            body: JSON.stringify({ id }) 
-        });
-        STATE.all = STATE.all.filter(p => p.id !== id);
-        window.renderArchive();
-        window.updateStatus(false);
-    };
+    // 辅助工具与 API
+    window.apiPost = async (p, d) => { window.updateStatus(true); await fetch(API_URL+p, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); window.updateStatus(false); };
+    window.updateStep = async (id, v) => { const p=STATE.all.find(x=>x.id===id); p.s=Number(v); window.renderHome(); await window.apiPost("/", p); };
+    window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; if(v==='archive') window.renderArchive(); else window.renderHome(); };
+    window.updateTplSelect = () => { const grouped = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); document.getElementById("ipt_tpl").innerHTML = Object.keys(grouped).map(cat => `<optgroup label="${cat}">${grouped[cat].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); };
+    window.autoSize = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
+    window.saveMemo = async (id, v) => { const p=STATE.all.find(x=>x.id===id); if(p.memo===v)return; p.memo=v; await window.apiPost("/", p); };
+    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
+    window.closeModal = (id) => document.getElementById(id).style.display = "none";
+    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
+    window.physicallyDelete = async (id) => { if(!confirm("确定要物理删除该项目吗？此操作不可撤销。")) return; await fetch(API_URL + "/delete", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ id }) }); STATE.all = STATE.all.filter(p => p.id !== id); window.renderArchive(); };
+    window.archiveProject = async (id) => { const p = STATE.all.find(x => x.id === id); p.isArchived = 1; p.archivedAt = Date.now(); window.renderHome(); await window.apiPost("/", p); };
+    window.unarchive = async (id) => { const p = STATE.all.find(x => x.id === id); p.isArchived = 0; window.renderArchive(); await window.apiPost("/", p); window.switchView('home'); };
 
-    window.archiveProject = async (id) => {
-        const p = STATE.all.find(x => x.id === id);
-        p.isArchived = 1;
-        p.archivedAt = Date.now();
-        window.renderHome();
-        await window.apiPost("/", p);
-    };
-
-    window.unarchive = async (id) => {
-        const p = STATE.all.find(x => x.id === id);
-        p.isArchived = 0;
-        window.renderArchive();
-        await window.apiPost("/", p);
-        window.switchView('home');
-    };
-
+    // --- 模板管理逻辑 ---
     window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
     window.toggleTplEdit = () => {
         IS_TPL_EDITING = !IS_TPL_EDITING;
@@ -279,16 +269,6 @@
     };
 
     window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
-    window.apiPost = async (p, d) => { window.updateStatus(true); await fetch(API_URL+p, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); window.updateStatus(false); };
-    window.updateStep = async (id, v) => { const p=STATE.all.find(x=>x.id===id); p.s=Number(v); window.renderHome(); await window.apiPost("/", p); };
-    window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; if(v==='archive') window.renderArchive(); else window.renderHome(); };
-    window.updateTplSelect = () => { const grouped = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); document.getElementById("ipt_tpl").innerHTML = Object.keys(grouped).map(cat => `<optgroup label="${cat}">${grouped[cat].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); };
-    window.autoSize = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
-    window.saveMemo = async (id, v) => { const p=STATE.all.find(x=>x.id===id); if(p.memo===v)return; p.memo=v; await window.apiPost("/", p); };
-    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
-    window.closeModal = (id) => document.getElementById(id).style.display = "none";
-    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
-    
     window.renameCategory = async (old, n) => { if(!n.trim() || old===n) return; for(let t of STATE.tpls.filter(x=>x.cat===old)){ t.cat=n; await window.apiPost("/templates", t); } window.loadData(); };
     window.saveTplName = async (id, v) => { const t=STATE.tpls.find(x=>x.id===id); t.name=v; await window.apiPost("/templates", t); };
     window.moveTplCategory = async (id, c) => { const t=STATE.tpls.find(x=>x.id===id); t.cat=c; await window.apiPost("/templates", t); window.loadData(); };
@@ -297,7 +277,20 @@
     window.removeStep = async (id, idx) => { const t=STATE.tpls.find(x=>x.id===id); let s=JSON.parse(t.steps); s.splice(idx,1); t.steps=JSON.stringify(s); await window.apiPost("/templates", t); window.renderTplList(); };
     window.addNewTpl = async () => { const n=prompt("模板名:"); if(!n) return; await window.apiPost("/templates", {id:'t-'+Date.now(), name:n, cat:CUR_TAB, steps:'["新环节"]'}); window.loadData(); };
     window.delTpl = async (id) => { if(confirm("删除流程？")){ await fetch(API_URL+"/templates/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); window.loadData(); } };
-    window.addCategory = () => { const n=prompt("分类名:"); if(n) { CUR_TAB = n; window.renderTplList(); } };
+    
+    // 【修复版】新增标签页函数：直接创建一个初始模板以固化分类
+    window.addCategory = async () => { 
+        const n = prompt("分类名:"); 
+        if (n && n.trim()) { 
+            const catName = n.trim();
+            const exists = STATE.tpls.some(t => t.cat === catName);
+            if (exists) { window.switchTab(catName); return; }
+            const newTpl = { id: 't-' + Date.now(), name: "新流程", cat: catName, steps: '["开始"]' };
+            await window.apiPost("/templates", newTpl);
+            await window.loadData();
+            window.switchTab(catName);
+        } 
+    };
 
     window.autoTheme = () => {
         const hour = new Date().getHours();
