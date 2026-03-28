@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.44</title>
+    <title>项目流管理器 V1.0.45</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -42,15 +42,17 @@
         .prog-bar-fill { height: 100%; transition: width 0.6s; }
         .btn-archive-action { flex: 1; background: var(--btn-archive); color: #fff; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
 
+        /* 备注框样式：低调配色 */
         .memo-area { width: 100%; height: 40px; resize: none; border: none; background: transparent; color: var(--text-sub); font-size: 12px; line-height: 1.5; padding: 5px 0; outline: none; }
+        .memo-area::placeholder { color: var(--text-sub); opacity: 0.5; }
 
-        /* 归档库列表：补全信息 */
+        /* 归档库样式 */
         .arch-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
         .arch-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; position: relative; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .arch-card .del-x { position: absolute; right: 12px; top: 12px; color: var(--danger); font-size: 18px; cursor: pointer; font-weight: bold; opacity: 0.3; }
         .arch-card .del-x:hover { opacity: 1; }
         .arch-title { font-weight: bold; font-size: 15px; color: var(--tab-color); cursor: pointer; margin-right: 25px; }
-        .arch-detail { font-size: 12px; color: var(--text-sub); display: flex; flex-direction: column; gap: 3px; border-top: 1px solid var(--border-color); pt: 8px; margin-top: 5px; padding-top: 8px;}
+        .arch-detail { font-size: 12px; color: var(--text-sub); display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border-color); margin-top: 6px; padding-top: 8px;}
 
         /* 弹窗与设置 */
         .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
@@ -58,6 +60,14 @@
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #52c41a; }
         .dot-syncing { background: #fa8c16; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* 模板 Tabs */
+        .tabs-nav { display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-item { padding: 10px 18px; cursor: pointer; border-radius: 10px 10px 0 0; font-size: 13px; background: var(--input-bg); border: 1px solid var(--border-color); border-bottom: none; white-space: nowrap; }
+        .tab-active { background: var(--tab-color) !important; color: #fff !important; }
+        .tpl-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--tab-color); }
+        .step-box { background: var(--input-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 8px; font-size: 12px; display: flex; gap: 5px; align-items: center; }
+        .step-box input { border: none; background: transparent; color: var(--text-main); font-size: 12px; width: 80px; outline: none; }
     </style>
 </head>
 <body>
@@ -66,7 +76,7 @@
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
             <span style="font-size:18px; font-weight:800;">项目流管理器</span>
-            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.44</span>
+            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.45</span>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -78,13 +88,15 @@
     </div>
 </div>
 
-<div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
+<div id="viewHome" class="view-section view-active">
+    <div id="projectList" class="grid-container"></div>
+</div>
 
 <div id="viewArchive" class="view-section">
     <div style="background:var(--card-bg); padding:12px 15px; border-radius:15px; margin-bottom:20px; display:flex; gap:10px; align-items:center;">
         <select id="archYear" class="f-input" style="width:100px;" onchange="window.renderArchive()"></select>
         <select id="archTpl" class="f-input" style="width:120px;" onchange="window.renderArchive()"></select>
-        <input type="text" id="archSearch" class="f-input" style="flex:1;" placeholder="搜索归档项目..." oninput="window.renderArchive()">
+        <input type="text" id="archSearch" class="f-input" style="flex:1;" placeholder="搜索归档项目（名称/单位/备注）..." oninput="window.renderArchive()">
         <button class="btn-black" onclick="window.switchView('home')">🏠 返回首页</button>
     </div>
     <div id="archiveGrid" class="arch-grid"></div>
@@ -107,6 +119,8 @@
         <h3>⚙️ 流程与模板管理</h3>
         <div style="display:flex; gap:10px;">
             <button id="tplEditBtn" class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.toggleTplEdit()">✍️ 修改模式</button>
+            <button id="tplAddTabBtn" class="btn-black" style="display:none; background:var(--tab-color)" onclick="window.addCategory()">+ 分类</button>
+            <button id="tplAddBtn" class="btn-black" style="display:none; background:#52c41a" onclick="window.addNewTpl()">+ 流程</button>
         </div>
     </div>
     <div id="tabsNav" class="tabs-nav"></div>
@@ -118,6 +132,7 @@
     const API_URL = "https://api-flow.roll.ccwu.cc";
     let STATE = { all: [], tpls: [] };
     let CUR_TAB = "默认分类";
+    let IS_TPL_EDITING = false;
 
     window.onload = () => { 
         if(localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
@@ -146,7 +161,8 @@
             window.renderHome();
             window.updateTplSelect();
             window.initArchFilters();
-        } finally { window.updateStatus(false); }
+        } catch(e) { console.error("数据加载失败", e); }
+        finally { window.updateStatus(false); }
     };
 
     window.renderHome = () => {
@@ -178,7 +194,7 @@
         const y = document.getElementById("archYear").value;
         const tId = document.getElementById("archTpl").value;
         const filtered = STATE.all.filter(p => p.isArchived && 
-            (p.n.toLowerCase().includes(q) || (p.un||'').toLowerCase().includes(q)) &&
+            (p.n.toLowerCase().includes(q) || (p.un||'').toLowerCase().includes(q) || (p.memo||'').toLowerCase().includes(q)) &&
             (!y || new Date(p.createdAt).getFullYear().toString() === y) &&
             (!tId || p.tpl === tId)
         ).sort((a,b) => b.archivedAt - a.archivedAt);
@@ -193,32 +209,38 @@
                     <span>📑 流程：${t.name}</span>
                     <span>🏢 单位：${p.un || '未填写'}</span>
                     <span>💰 金额：¥${p.am || 0}</span>
-                    <span>📅 起止：${new Date(p.createdAt).toLocaleDateString()} 至 ${new Date(p.archivedAt).toLocaleDateString()}</span>
+                    <span>📅 起止：${new Date(p.createdAt).toLocaleDateString()} ~ ${new Date(p.archivedAt).toLocaleDateString()}</span>
                 </div>
-                ${p.memo ? `<div style="font-size:11px; color:var(--text-sub); margin-top:5px; font-style:italic;">备注：${p.memo}</div>` : ''}
+                ${p.memo ? `<div style="font-size:11px; color:var(--text-sub); margin-top:5px; border-top:1px dashed var(--border-color); padding-top:5px;">📝 ${p.memo}</div>` : ''}
             </div>`;
-        }).join('');
+        }).join(filtered.length ? '' : '<div style="grid-column:1/-1;text-align:center;padding:50px;color:var(--text-sub)">无符合条件的归档项目</div>');
     };
 
-    // --- 修复置顶持久化逻辑 ---
+    // --- 持久化逻辑：置顶切换 ---
     window.togglePin = async (id) => {
         const p = STATE.all.find(x => x.id === id);
         if (!p) return;
         p.isPinned = p.isPinned ? 0 : 1;
-        window.renderHome(); // 先渲染反馈
-        await window.saveToDB(p); // 关键：立即同步到后端
+        window.renderHome(); // 立即渲染本地反馈
+        await window.saveToDB(p); // 强制持久化
     };
 
-    // --- 基础逻辑保持不变 ---
     window.saveToDB = async (p) => {
         window.updateStatus(true);
         try {
             await fetch(API_URL + "/", { 
                 method: "POST", 
                 headers: {"Content-Type":"application/json"}, 
-                body: JSON.stringify({...p, logs: JSON.stringify(p.logs || [])})
+                body: JSON.stringify({
+                    ...p,
+                    isPinned: Number(p.isPinned || 0), // 确保是数字
+                    isArchived: Number(p.isArchived || 0),
+                    s: Number(p.s || 0),
+                    logs: JSON.stringify(p.logs || [])
+                })
             });
-        } finally { window.updateStatus(false); }
+        } catch(e) { console.error("同步失败", e); }
+        finally { window.updateStatus(false); }
     };
 
     window.switchView = (v) => {
@@ -226,6 +248,7 @@
         document.getElementById(v === 'home' ? 'viewHome' : 'viewArchive').classList.add('view-active');
         if(v === 'archive') window.renderArchive();
     };
+
     window.initArchFilters = () => {
         const years = [...new Set(STATE.all.map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         const tplIds = [...new Set(STATE.all.map(p => p.tpl))];
@@ -235,16 +258,44 @@
             return `<option value="${id}">${t?t.name:'未知'}</option>`;
         }).join('');
     };
+
     window.archiveProject = async (id) => { if(confirm("归档后将从主页移除，确定吗？")){ const p = STATE.all.find(x=>x.id===id); p.isArchived = 1; p.archivedAt = Date.now(); await window.saveToDB(p); window.loadData(); } };
     window.unarchive = async (id) => { if(confirm("将项目恢复到主页？")){ const p = STATE.all.find(x=>x.id===id); p.isArchived = 0; await window.saveToDB(p); window.loadData(); window.switchView('home'); } };
     window.deleteForever = async (id) => { if(confirm("彻底删除不可恢复？")){ window.updateStatus(true); await fetch(API_URL + "/delete", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id})}); await window.loadData(); window.renderArchive(); } };
+    
     window.updateStep = async (id, v) => {
         const p = STATE.all.find(x => x.id === id); const tpl = STATE.tpls.find(t => t.id === p.tpl); p.s = Number(v);
         p.logs = [{ t: new Date().toLocaleString('zh-CN', {hour12:false}).slice(5, -3), n: tpl.steps[v] }, ...(p.logs || [])].slice(0, 3);
         window.renderHome(); await window.saveToDB(p);
     };
-    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
+
     window.saveMemo = (id, v) => { const p = STATE.all.find(x=>x.id===id); if(p && p.memo!==v){ p.memo=v; window.saveToDB(p); } };
+    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
+    window.showLogs = (id) => { const p = STATE.all.find(x=>x.id===id); alert(`变更记录：\n${p.logs.map(l=>l.t+': '+l.n).join('\n') || '暂无'}`); };
+    window.closeModal = (m) => { document.getElementById(m).style.display = "none"; window.loadData(); };
+    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
+    
+    // 模板管理逻辑
+    window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
+    window.toggleTplEdit = () => { IS_TPL_EDITING = !IS_TPL_EDITING; document.getElementById("tplEditBtn").innerText = IS_TPL_EDITING ? "🔒 锁定" : "✍️ 修改模式"; document.getElementById("tplAddBtn").style.display = document.getElementById("tplAddTabBtn").style.display = IS_TPL_EDITING ? "block" : "none"; window.renderTplList(); };
+    window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
+    window.renderTplList = () => {
+        const cats = [...new Set(STATE.tpls.map(t => t.cat))];
+        if(!cats.includes(CUR_TAB)) CUR_TAB = cats[0] || "默认分类";
+        document.getElementById("tabsNav").innerHTML = cats.map(c => `<div class="tab-item ${c===CUR_TAB?'tab-active':''}" onclick="window.switchTab('${c}')">${c}</div>`).join('');
+        const filtered = STATE.tpls.filter(t => t.cat === CUR_TAB);
+        document.getElementById("tplList").innerHTML = filtered.map(t => `
+            <div class="tpl-item">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <b>${IS_TPL_EDITING ? `<input class="f-input" value="${t.name}" onblur="window.saveTplName('${t.id}', this.value)">` : t.name}</b>
+                    ${IS_TPL_EDITING ? `<button style="color:red; border:none; background:none; cursor:pointer;" onclick="window.delTpl('${t.id}')">🗑️ 删除</button>` : ''}
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    ${t.steps.map((s, i) => `<div class="step-box">${IS_TPL_EDITING ? `<input value="${s}" onblur="window.editStep('${t.id}', ${i}, this.value)">` : `<span>${s}</span>`}</div>`).join('')}
+                </div>
+            </div>`).join('');
+    };
+
     window.updateTplSelect = () => {
         const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {});
         document.getElementById("ipt_tpl").innerHTML = Object.keys(g).map(c => `<optgroup label="${c}">${g[c].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join('');
@@ -254,11 +305,6 @@
         const p = { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: Number(document.getElementById("ipt_am").value), s: 0, memo: "", isPinned: 0, isArchived: 0, logs: '[]', createdAt: Date.now() };
         await window.saveToDB(p); window.closeModal("addModal");
     };
-    window.showLogs = (id) => { const p = STATE.all.find(x=>x.id===id); alert(`最近记录：\n${p.logs.map(l=>l.t+': '+l.n).join('\n') || '暂无'}`); };
-    window.closeModal = (m) => { document.getElementById(m).style.display = "none"; window.loadData(); };
-    window.showAdd = () => document.getElementById("addModal").style.display = "flex";
-    window.showTplMgr = () => { document.getElementById("tplModal").style.display = "flex"; window.renderTplList(); };
-    window.renderTplList = () => { /* 保持 V1.0.33 逻辑 */ };
 </script>
 </body>
 </html>
