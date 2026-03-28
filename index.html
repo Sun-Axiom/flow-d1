@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.53</title>
+    <title>项目流管理器 V1.0.54</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -42,12 +42,14 @@
         .tab-item { padding: 8px 16px; cursor: pointer; color: var(--text-sub); border-bottom: 2px solid transparent; font-size: 14px; white-space: nowrap; }
         .tab-active { color: var(--tab-color); border-bottom-color: var(--tab-color); font-weight: bold; }
         
-        .tpl-item { background: var(--input-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--tab-color); position: relative; cursor: pointer; transition: transform 0.1s; }
-        .tpl-item:hover { transform: scale(1.01); background: var(--border-color); }
+        .tpl-item { background: var(--input-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--tab-color); position: relative; cursor: pointer; }
         
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #52c41a; }
         .dot-syncing { background: #fa8c16; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
+        
+        /* 时光球样式 */
+        .time-ball { width: 34px; height: 34px; border: 1px solid var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-sub); font-size: 16px; }
     </style>
 </head>
 <body>
@@ -56,7 +58,7 @@
     <div class="nav-content">
         <div onclick="location.reload()" style="cursor:pointer">
             <span style="font-size:18px; font-weight:800;">项目流管理器</span>
-            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.53</span>
+            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.54</span>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -125,7 +127,13 @@
                 fetch(API_URL).then(r => r.json()),
                 fetch(API_URL + "/templates").then(r => r.json())
             ]);
-            STATE.all = pRes.map(p => ({...p, s: Number(p.s), isPinned: Number(p.isPinned||0) }));
+            // 关键：容错解析 logs
+            STATE.all = pRes.map(p => ({
+                ...p, 
+                s: Number(p.s), 
+                isPinned: Number(p.isPinned||0),
+                logs: Array.isArray(p.logs) ? p.logs : JSON.parse(p.logs || '[]')
+            }));
             STATE.tpls = tRes.map(t => ({...t, cat: t.cat || "默认分类", steps: JSON.parse(t.steps || '["默认"]')}));
             window.renderHome();
             window.updateTplSelect();
@@ -144,13 +152,54 @@
                 <div style="font-weight:800; font-size:16px; margin-bottom:4px;">${p.n}</div>
                 <div style="font-size:11px; color:var(--text-sub); margin-bottom:12px;">🔖 ${tpl.name} | 🏢 ${p.un||'-'} | ¥${p.am||0}</div>
                 <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%; background:hsl(${120-pct*1.2},70%,45%)"></div></div>
-                <select class="f-input" style="width:100%;" onchange="window.updateStep('${p.id}', this.value)">
-                    ${tpl.steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
-                </select>
+                <div style="display:flex; gap:10px;">
+                    <select class="f-input" style="flex:1;" onchange="window.updateStep('${p.id}', this.value)">
+                        ${tpl.steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
+                    </select>
+                    <div class="time-ball" onclick="window.showLogs('${p.id}')" title="时光球：查看变更记录">🕒</div>
+                </div>
             </div>`;
         }).join('');
     };
 
+    window.showLogs = (id) => {
+        const p = STATE.all.find(x => x.id === id);
+        if(!p.logs || p.logs.length === 0) return alert("暂无变更记录");
+        const logStr = p.logs.map(l => `${l.t}: ${l.n}`).join('\n');
+        alert(`【${p.n}】变更记录：\n\n${logStr}`);
+    };
+
+    window.updateStep = async (id, v) => {
+        const p = STATE.all.find(x => x.id === id);
+        const tpl = STATE.tpls.find(t => t.id === p.tpl);
+        p.s = Number(v);
+        // 自动生成日志
+        const newLog = { 
+            t: new Date().toLocaleString('zh-CN', {hour12:false}).slice(5, -3), 
+            n: tpl.steps[v] 
+        };
+        p.logs = [newLog, ...(p.logs || [])].slice(0, 5); // 保留最近5条
+        window.renderHome(); 
+        await window.saveP(p);
+    };
+
+    window.saveP = async (p) => { 
+        window.updateStatus(true); 
+        const payload = {
+            ...p,
+            isPinned: Number(p.isPinned),
+            isArchived: Number(p.isArchived || 0),
+            logs: JSON.stringify(p.logs || []) // 关键：序列化日志
+        };
+        await fetch(API_URL + "/", { 
+            method: "POST", 
+            headers: {"Content-Type":"application/json"}, 
+            body: JSON.stringify(payload) 
+        }); 
+        window.updateStatus(false); 
+    };
+
+    // --- 以下为 1.0.53 继承的模板管理逻辑 ---
     window.renderTplList = () => {
         const cats = [...new Set(STATE.tpls.map(t => t.cat))];
         if(!CUR_TAB || !cats.includes(CUR_TAB)) CUR_TAB = cats[0] || "默认分类";
@@ -186,7 +235,7 @@
     };
 
     window.confirmDelTpl = async () => {
-        if(confirm("确定彻底删除该流程模板吗？所有使用该模板的项目将受影响。")){
+        if(confirm("确定彻底删除该流程模板吗？")){
             window.updateStatus(true);
             await fetch(API_URL + "/templates/delete", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({id: EDITING_TPL_ID}) });
             await window.loadData();
@@ -210,14 +259,7 @@
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
     window.toggleTheme = () => { const isDark = document.documentElement.getAttribute('data-theme') === 'dark'; document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark'); localStorage.setItem('theme', isDark ? 'light' : 'dark'); };
-
     window.togglePin = async (id) => { const p = STATE.all.find(x=>x.id===id); p.isPinned = p.isPinned?0:1; window.renderHome(); await window.saveP(p); };
-    window.updateStep = async (id, v) => { const p = STATE.all.find(x=>x.id===id); p.s = Number(v); window.renderHome(); await window.saveP(p); };
-    window.saveP = async (p) => { 
-        window.updateStatus(true); 
-        await fetch(API_URL + "/", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({...p, isPinned: Number(p.isPinned)}) }); 
-        window.updateStatus(false); 
-    };
 
     window.updateTplSelect = () => {
         const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {});
@@ -226,7 +268,7 @@
 
     window.addP = async () => {
         const n = document.getElementById("ipt_n").value; const tpl = document.getElementById("ipt_tpl").value; if(!n||!tpl) return;
-        const p = { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: Number(document.getElementById("ipt_am").value), s: 0, isPinned: 0, isArchived: 0, createdAt: Date.now() };
+        const p = { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: Number(document.getElementById("ipt_am").value), s: 0, isPinned: 0, isArchived: 0, logs: [], createdAt: Date.now() };
         await window.saveP(p); window.closeModal("addModal"); window.loadData();
     };
 </script>
