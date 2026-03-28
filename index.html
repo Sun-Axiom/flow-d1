@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.30-DelFixed</title>
+    <title>项目流管理器 V1.0.32-FinalFix</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -69,7 +69,7 @@
 <div class="nav-header">
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
-            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.30</span>
+            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.32</span>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -114,7 +114,7 @@
     </div>
     <div id="tabsNav" class="tabs-nav"></div>
     <div id="tplList" style="min-height:300px;"></div>
-    <button class="btn-black" style="width:100%; margin-top:15px; justify-content:center; height:45px;" onclick="window.closeModal('tplModal')">确认修改并关闭</button>
+    <button class="btn-black" style="width:100%; margin-top:15px; justify-content:center; height:45px;" onclick="window.closeModal('tplModal')">确认并关闭</button>
 </div></div>
 
 <script>
@@ -146,7 +146,7 @@
             });
             window.renderHome();
             window.updateTplSelect();
-            if (IS_TPL_EDITING || document.getElementById('tplModal').style.display === 'flex') window.renderTplList();
+            if (document.getElementById('tplModal').style.display === 'flex') window.renderTplList();
         } finally { window.updateStatus(false); }
     };
 
@@ -163,10 +163,39 @@
                 <select class="f-input" onchange="window.updateStep('${p.id}', this.value)">
                     ${tpl.steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
                 </select>
-                <textarea class="memo-area" placeholder="备注..." onblur="window.saveMemo('${p.id}', this.value)" style="border:none; background:transparent; width:100%; font-size:11px; color:var(--text-sub); resize:none;">${p.memo || ''}</textarea>
-                <button class="f-input" style="cursor:pointer; color:var(--prog-doing); border-style:dashed; margin-top:5px;" onclick="window.archiveProject('${p.id}')">完成并归档项目</button>
+                <textarea class="memo-area" placeholder="备注..." onblur="window.saveMemo('${p.id}', this.value)" style="border:none; background:transparent; width:100%; font-size:11px; color:var(--text-sub); resize:none; outline:none;">${p.memo || ''}</textarea>
+                <button class="f-input" style="cursor:pointer; color:var(--prog-doing); border-style:dashed; margin-top:5px; background:none;" onclick="window.archiveProject('${p.id}')">完成并归档项目</button>
             </div>`;
         }).join(active.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">暂无进行中项目</div>');
+    };
+
+    // --- 核心修复：乐观更新首页项目进度 ---
+    window.updateStep = async (id, v) => {
+        const p = STATE.all.find(x => x.id === id);
+        if (!p) return;
+        
+        // 1. 立即修改本地内存数据，防止 Select 框跳回
+        const oldStep = p.s;
+        p.s = Number(v);
+        
+        // 2. 立即重绘首页，锁定 UI 状态
+        window.renderHome();
+
+        // 3. 异步推送到云端
+        window.updateStatus(true);
+        try {
+            await fetch(API_URL + "/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(p)
+            });
+        } catch (e) {
+            p.s = oldStep; // 失败才回滚
+            window.renderHome();
+            alert("同步失败，请检查网络");
+        } finally {
+            window.updateStatus(false);
+        }
     };
 
     window.renderTplList = () => {
@@ -202,12 +231,11 @@
                     `).join('')}
                     ${IS_TPL_EDITING ? `<button class="btn-black" style="background:none; border:2px dashed var(--tab-color); color:var(--tab-color); padding:10px;" onclick="window.addStep('${t.id}')">+ 加步骤</button>` : ''}
                 </div>
-            </div>`).join(filtered.length ? '' : '<div style="text-align:center; padding:50px; color:var(--text-sub)">该分类为空，请添加流程或修改分类名</div>');
+            </div>`).join(filtered.length ? '' : '<div style="text-align:center; padding:50px; color:var(--text-sub)">该分类为空</div>');
     };
 
-    // --- 核心修复：删除流程 ---
     window.delTpl = async (id) => {
-        if(!confirm("确定要永久删除这个流程模板吗？该操作不可恢复。")) return;
+        if(!confirm("确定要永久删除这个流程模板吗？")) return;
         window.updateStatus(true);
         try {
             const res = await fetch(API_URL + "/templates/delete", {
@@ -216,22 +244,15 @@
                 body: JSON.stringify({ id: id })
             });
             if(res.ok) {
-                // 立即更新本地状态，提升响应速度
                 STATE.tpls = STATE.tpls.filter(t => t.id !== id);
                 window.renderTplList();
                 window.updateTplSelect();
             } else {
-                alert("后端删除失败，请检查网络或 API 权限");
+                alert("后端删除失败，请检查 Worker 代码是否包含 /templates/delete 路径");
             }
-        } catch(e) {
-            console.error("Delete Error:", e);
-        } finally {
-            window.updateStatus(false);
-            window.loadData(); // 最终同步一次云端
-        }
+        } finally { window.updateStatus(false); }
     };
 
-    // --- 分类重命名 ---
     window.renameCategory = async (oldName, newName) => {
         const n = newName.trim();
         if (!n || n === oldName) return;
@@ -283,18 +304,15 @@
     window.addNewTpl = async () => { const n = prompt("流程名称:"); if(n) await window.apiPost("/templates", { id: 't-'+Date.now(), name: n, cat: CUR_TAB, steps: ["第一步"] }); };
     window.addStep = async (id) => { const t = STATE.tpls.find(x => x.id === id); t.steps.push("新步骤"); await window.apiPost("/templates", t); };
     window.removeStep = async (id, idx) => { const t = STATE.tpls.find(x => x.id === id); t.steps.splice(idx, 1); await window.apiPost("/templates", t); };
-    
-    window.addP = async () => { 
-        const n = document.getElementById("ipt_n").value; 
-        const tpl = document.getElementById("ipt_tpl").value; 
-        if(!n||!tpl) return; 
-        await window.apiPost("/", { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: document.getElementById("ipt_am").value, s: 0, memo: "", isArchived: 0, createdAt: Date.now() }); 
-        window.closeModal("addModal"); 
-    };
-    window.updateStep = async (id, v) => { const p = STATE.all.find(x => x.id === id); p.s = Number(v); await window.apiPost("/", p); };
     window.archiveProject = async (id) => { const p = STATE.all.find(x => x.id === id); p.isArchived = 1; await window.apiPost("/", p); };
     window.saveMemo = async (id, v) => { const p = STATE.all.find(x => x.id === id); if(p.memo === v) return; p.memo = v; await window.apiPost("/", p); };
     
+    window.addP = async () => { 
+        const n = document.getElementById("ipt_n").value; const tpl = document.getElementById("ipt_tpl").value; if(!n||!tpl) return; 
+        await window.apiPost("/", { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: document.getElementById("ipt_am").value, s: 0, memo: "", isArchived: 0, createdAt: Date.now() }); 
+        window.closeModal("addModal"); 
+    };
+
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
     window.switchView = (v) => { 
         document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; 
@@ -315,8 +333,7 @@
     window.autoTheme = () => { const t = localStorage.getItem('flow-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); };
     window.toggleThemeManual = () => { 
         const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; 
-        document.documentElement.setAttribute('data-theme', t); 
-        localStorage.setItem('flow-theme', t); 
+        document.documentElement.setAttribute('data-theme', t); localStorage.setItem('flow-theme', t); 
     };
 </script>
 </body>
