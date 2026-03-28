@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.29-Fixed</title>
+    <title>项目流管理器 V1.0.30-DelFixed</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -43,7 +43,7 @@
         .tab-item { padding: 10px 20px; cursor: pointer; border-radius: 12px 12px 0 0; font-size: 14px; color: var(--text-sub); border: 1px solid var(--border-color); border-bottom: none; white-space: nowrap; background: var(--input-bg); }
         .tab-active { color: #fff !important; font-weight: bold; background: var(--tab-color) !important; border-color: transparent; }
 
-        .tpl-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+        .tpl-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; border-left: 5px solid var(--tab-color); }
         .steps-wrapper { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 15px; }
         .step-box { 
             background: var(--step-bg); border: 2px solid var(--border-color); 
@@ -69,7 +69,7 @@
 <div class="nav-header">
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
-            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.29</span>
+            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.30</span>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -109,7 +109,7 @@
         <div style="display:flex; gap:10px;">
             <button id="tplEditBtn" class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.toggleTplEdit()">✍️ 修改模式</button>
             <button id="tplAddTabBtn" class="btn-black" style="display:none; background:var(--prog-doing)" onclick="window.addCategory()">+ 新标签页</button>
-            <button id="tplAddBtn" class="btn-black" style="display:none; background:var(--prog-done)" onclick="window.addNewTpl()">+ 新模板</button>
+            <button id="tplAddBtn" class="btn-black" style="display:none; background:var(--prog-done)" onclick="window.addNewTpl()">+ 新流程</button>
         </div>
     </div>
     <div id="tabsNav" class="tabs-nav"></div>
@@ -146,6 +146,7 @@
             });
             window.renderHome();
             window.updateTplSelect();
+            if (IS_TPL_EDITING || document.getElementById('tplModal').style.display === 'flex') window.renderTplList();
         } finally { window.updateStatus(false); }
     };
 
@@ -155,24 +156,22 @@
         home.innerHTML = active.map(p => {
             const tpl = STATE.tpls.find(t => t.id === p.tpl) || { name: "未知", steps: ["载入中"] };
             const pct = Math.min(Math.round(((p.s + 1) / tpl.steps.length) * 100), 100);
-            return `
-            <div class="card">
+            return `<div class="card">
                 <div style="font-weight:800; font-size:16px; margin-bottom:4px;">📦 ${p.n}</div>
                 <div style="font-size:11px; color:var(--text-sub); margin-bottom:12px;">🔖 ${tpl.name} | 🏢 ${p.un||'-'} | 💰 ¥${p.am||0}</div>
                 <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%; background:${pct===100?'var(--prog-done)':'var(--prog-doing)'}"></div></div>
                 <select class="f-input" onchange="window.updateStep('${p.id}', this.value)">
                     ${tpl.steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
                 </select>
-                <textarea class="memo-area" placeholder="备注..." onblur="window.saveMemo('${p.id}', this.value)">${p.memo || ''}</textarea>
-                <button class="f-input" style="cursor:pointer; color:var(--prog-doing); border-style:dashed;" onclick="window.archiveProject('${p.id}')">完成并归档</button>
+                <textarea class="memo-area" placeholder="备注..." onblur="window.saveMemo('${p.id}', this.value)" style="border:none; background:transparent; width:100%; font-size:11px; color:var(--text-sub); resize:none;">${p.memo || ''}</textarea>
+                <button class="f-input" style="cursor:pointer; color:var(--prog-doing); border-style:dashed; margin-top:5px;" onclick="window.archiveProject('${p.id}')">完成并归档项目</button>
             </div>`;
-        }).join(active.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">暂无项目</div>');
+        }).join(active.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">暂无进行中项目</div>');
     };
 
-    // --- 模板与分类修改核心修复 ---
     window.renderTplList = () => {
         const categories = [...new Set(STATE.tpls.map(t => t.cat))];
-        if (!categories.includes(CUR_TAB)) CUR_TAB = categories[0] || "默认分类";
+        if (categories.length > 0 && !categories.includes(CUR_TAB)) CUR_TAB = categories[0];
         
         document.documentElement.style.setProperty('--tab-color', getTabColor(CUR_TAB));
         document.getElementById("tabsNav").innerHTML = categories.map(c => `
@@ -185,12 +184,12 @@
         const list = document.getElementById("tplList");
         list.className = IS_TPL_EDITING ? "edit-active" : "";
         list.innerHTML = filtered.map(t => `
-            <div class="tpl-item">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                    <div style="font-weight:bold;">📂 
+            <div class="tpl-item" style="--tab-color:${getTabColor(CUR_TAB)}">
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+                    <div style="font-weight:bold; font-size:16px;">📂 
                         ${IS_TPL_EDITING ? `<span contenteditable="true" onblur="window.saveTplName('${t.id}', this.innerText)" style="border-bottom:1px dashed #999">${t.name}</span>` : t.name}
                     </div>
-                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:var(--danger); font-size:10px; padding:2px 6px;" onclick="window.delTpl('${t.id}')">删除</button>` : ''}
+                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:var(--danger); font-size:11px; padding:4px 8px;" onclick="window.delTpl('${t.id}')">🗑️ 删除该流程</button>` : ''}
                 </div>
                 <div class="steps-wrapper">
                     ${t.steps.map((s, i) => `
@@ -201,12 +200,38 @@
                         </div>
                         ${i < t.steps.length - 1 ? '<span class="step-arrow">→</span>' : ''}
                     `).join('')}
-                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:none; border:2px dashed var(--tab-color); color:var(--tab-color)" onclick="window.addStep('${t.id}')">+ 步骤</button>` : ''}
+                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:none; border:2px dashed var(--tab-color); color:var(--tab-color); padding:10px;" onclick="window.addStep('${t.id}')">+ 加步骤</button>` : ''}
                 </div>
-            </div>`).join('');
+            </div>`).join(filtered.length ? '' : '<div style="text-align:center; padding:50px; color:var(--text-sub)">该分类为空，请添加流程或修改分类名</div>');
     };
 
-    // 修复：分类重命名逻辑
+    // --- 核心修复：删除流程 ---
+    window.delTpl = async (id) => {
+        if(!confirm("确定要永久删除这个流程模板吗？该操作不可恢复。")) return;
+        window.updateStatus(true);
+        try {
+            const res = await fetch(API_URL + "/templates/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: id })
+            });
+            if(res.ok) {
+                // 立即更新本地状态，提升响应速度
+                STATE.tpls = STATE.tpls.filter(t => t.id !== id);
+                window.renderTplList();
+                window.updateTplSelect();
+            } else {
+                alert("后端删除失败，请检查网络或 API 权限");
+            }
+        } catch(e) {
+            console.error("Delete Error:", e);
+        } finally {
+            window.updateStatus(false);
+            window.loadData(); // 最终同步一次云端
+        }
+    };
+
+    // --- 分类重命名 ---
     window.renameCategory = async (oldName, newName) => {
         const n = newName.trim();
         if (!n || n === oldName) return;
@@ -214,7 +239,7 @@
         const targets = STATE.tpls.filter(t => t.cat === oldName);
         for (let t of targets) {
             t.cat = n;
-            await window.apiPost("/templates", t, false); // 不刷新，静默更新
+            await window.apiPost("/templates", t, false);
         }
         CUR_TAB = n;
         await window.loadData();
@@ -222,19 +247,18 @@
 
     window.saveTplName = async (id, newName) => {
         const t = STATE.tpls.find(x => x.id === id);
-        if (t.name === newName.trim()) return;
+        if (!t || t.name === newName.trim()) return;
         t.name = newName.trim();
         await window.apiPost("/templates", t);
     };
 
     window.editStep = async (id, idx, text) => {
         const t = STATE.tpls.find(x => x.id === id);
-        if (t.steps[idx] === text.trim()) return;
+        if (!t || t.steps[idx] === text.trim()) return;
         t.steps[idx] = text.trim();
         await window.apiPost("/templates", t);
     };
 
-    // 通用 POST 封装
     window.apiPost = async (path, data, reload = true) => {
         window.updateStatus(true);
         const payload = JSON.parse(JSON.stringify(data));
@@ -248,29 +272,52 @@
         else window.updateStatus(false);
     };
 
-    // 其他逻辑保持
     window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
-    window.toggleTplEdit = () => { IS_TPL_EDITING = !IS_TPL_EDITING; document.getElementById("tplEditBtn").innerText = IS_TPL_EDITING ? "🔒 锁定" : "✍️ 修改模式"; document.getElementById("tplAddBtn").style.display = document.getElementById("tplAddTabBtn").style.display = IS_TPL_EDITING ? "block" : "none"; window.renderTplList(); };
-    window.addCategory = async () => { const n = prompt("分类名:"); if(n) { await window.apiPost("/templates", { id: 't-'+Date.now(), name: "流程一", cat: n, steps: ["第一步"] }); CUR_TAB = n; } };
-    window.addNewTpl = async () => { const n = prompt("流程名:"); if(n) await window.apiPost("/templates", { id: 't-'+Date.now(), name: n, cat: CUR_TAB, steps: ["第一步"] }); };
+    window.toggleTplEdit = () => { 
+        IS_TPL_EDITING = !IS_TPL_EDITING; 
+        document.getElementById("tplEditBtn").innerText = IS_TPL_EDITING ? "🔒 锁定" : "✍️ 修改模式"; 
+        document.getElementById("tplAddBtn").style.display = document.getElementById("tplAddTabBtn").style.display = IS_TPL_EDITING ? "block" : "none"; 
+        window.renderTplList(); 
+    };
+    window.addCategory = async () => { const n = prompt("分类名称:"); if(n) { await window.apiPost("/templates", { id: 't-'+Date.now(), name: "新流程", cat: n, steps: ["第一步"] }); CUR_TAB = n; } };
+    window.addNewTpl = async () => { const n = prompt("流程名称:"); if(n) await window.apiPost("/templates", { id: 't-'+Date.now(), name: n, cat: CUR_TAB, steps: ["第一步"] }); };
     window.addStep = async (id) => { const t = STATE.tpls.find(x => x.id === id); t.steps.push("新步骤"); await window.apiPost("/templates", t); };
     window.removeStep = async (id, idx) => { const t = STATE.tpls.find(x => x.id === id); t.steps.splice(idx, 1); await window.apiPost("/templates", t); };
-    window.delTpl = async (id) => { if(confirm("删除流程？")) { await fetch(API_URL + "/templates/delete", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({id}) }); await window.loadData(); } };
     
-    window.addP = async () => { const n = document.getElementById("ipt_n").value; const tpl = document.getElementById("ipt_tpl").value; if(!n||!tpl) return; await window.apiPost("/", { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: document.getElementById("ipt_am").value, s: 0, memo: "", isArchived: 0, createdAt: Date.now() }); window.closeModal("addModal"); };
+    window.addP = async () => { 
+        const n = document.getElementById("ipt_n").value; 
+        const tpl = document.getElementById("ipt_tpl").value; 
+        if(!n||!tpl) return; 
+        await window.apiPost("/", { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: document.getElementById("ipt_am").value, s: 0, memo: "", isArchived: 0, createdAt: Date.now() }); 
+        window.closeModal("addModal"); 
+    };
     window.updateStep = async (id, v) => { const p = STATE.all.find(x => x.id === id); p.s = Number(v); await window.apiPost("/", p); };
     window.archiveProject = async (id) => { const p = STATE.all.find(x => x.id === id); p.isArchived = 1; await window.apiPost("/", p); };
     window.saveMemo = async (id, v) => { const p = STATE.all.find(x => x.id === id); if(p.memo === v) return; p.memo = v; await window.apiPost("/", p); };
     
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
-    window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; if(v==='archive') window.renderArchive(); };
-    window.renderArchive = () => { const arch = STATE.all.filter(p => p.isArchived); document.getElementById("archiveGrid").innerHTML = arch.map(p => `<div class="card" style="opacity:0.6"><b>${p.n}</b></div>`).join(''); };
+    window.switchView = (v) => { 
+        document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; 
+        document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; 
+        if(v==='archive') window.renderArchive(); 
+    };
+    window.renderArchive = () => { 
+        const arch = STATE.all.filter(p => p.isArchived); 
+        document.getElementById("archiveGrid").innerHTML = arch.map(p => `<div class="card" style="opacity:0.6"><b>📦 ${p.n}</b><br><small>${p.un}</small></div>`).join(arch.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">归档库空空如也</div>'); 
+    };
     window.closeModal = (id) => { document.getElementById(id).style.display = "none"; window.loadData(); };
     window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
-    window.updateTplSelect = () => { const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); document.getElementById("ipt_tpl").innerHTML = Object.keys(g).map(c => `<optgroup label="${c}">${g[c].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); };
+    window.updateTplSelect = () => { 
+        const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); 
+        document.getElementById("ipt_tpl").innerHTML = Object.keys(g).map(c => `<optgroup label="${c}">${g[c].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); 
+    };
     window.autoTheme = () => { const t = localStorage.getItem('flow-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); };
-    window.toggleThemeManual = () => { const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', t); localStorage.setItem('flow-theme', t); };
+    window.toggleThemeManual = () => { 
+        const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; 
+        document.documentElement.setAttribute('data-theme', t); 
+        localStorage.setItem('flow-theme', t); 
+    };
 </script>
 </body>
 </html>
