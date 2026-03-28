@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.41</title>
+    <title>项目流管理器 V1.0.42</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -37,7 +37,6 @@
         .prog-bar-bg { background: var(--input-bg); height: 8px; border-radius: 4px; margin: 12px 0; overflow: hidden; border: 1px solid var(--border-color); }
         .prog-bar-fill { height: 100%; transition: width 0.6s; }
 
-        /* 归档项目按钮样式 */
         .btn-archive-action { flex: 1; background: var(--btn-archive); color: #fff; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
 
         /* 归档库列表 */
@@ -69,7 +68,7 @@
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
             <span style="font-size:18px; font-weight:800;">项目流管理器</span>
-            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.41</span>
+            <span style="font-size:10px; color:var(--text-sub); margin-left:4px;">V1.0.42</span>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -84,10 +83,10 @@
 <div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
 
 <div id="viewArchive" class="view-section">
-    <div style="background:var(--card-bg); padding:15px; border-radius:15px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-        <input type="text" id="archSearch" class="f-input" style="flex:2;" placeholder="搜索项目/单位..." oninput="window.renderArchive()">
-        <select id="archYear" class="f-input" style="flex:1;" onchange="window.renderArchive()"></select>
-        <select id="archTpl" class="f-input" style="flex:1;" onchange="window.renderArchive()"></select>
+    <div style="background:var(--card-bg); padding:12px 15px; border-radius:15px; margin-bottom:20px; display:flex; gap:10px; align-items:center;">
+        <select id="archYear" class="f-input" style="width:100px;" onchange="window.renderArchive()"></select>
+        <select id="archTpl" class="f-input" style="width:120px;" onchange="window.renderArchive()"></select>
+        <input type="text" id="archSearch" class="f-input" style="flex:1;" placeholder="搜索项目、单位或备注..." oninput="window.renderArchive()">
         <button class="btn-black" onclick="window.switchView('home')">🏠 返回首页</button>
     </div>
     <div id="archiveGrid" class="arch-grid"></div>
@@ -182,8 +181,8 @@
     window.initArchFilters = () => {
         const years = [...new Set(STATE.all.map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         const tplIds = [...new Set(STATE.all.map(p => p.tpl))];
-        document.getElementById("archYear").innerHTML = '<option value="">所有年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
-        document.getElementById("archTpl").innerHTML = '<option value="">所有流程</option>' + tplIds.map(id => {
+        document.getElementById("archYear").innerHTML = '<option value="">年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
+        document.getElementById("archTpl").innerHTML = '<option value="">流程分类</option>' + tplIds.map(id => {
             const t = STATE.tpls.find(x => x.id === id);
             return `<option value="${id}">${t?t.name:'未知'}</option>`;
         }).join('');
@@ -194,7 +193,7 @@
         const y = document.getElementById("archYear").value;
         const tId = document.getElementById("archTpl").value;
         const filtered = STATE.all.filter(p => p.isArchived && 
-            (p.n.toLowerCase().includes(q) || (p.un||'').toLowerCase().includes(q)) &&
+            (p.n.toLowerCase().includes(q) || (p.un||'').toLowerCase().includes(q) || (p.memo||'').toLowerCase().includes(q)) &&
             (!y || new Date(p.createdAt).getFullYear().toString() === y) &&
             (!tId || p.tpl === tId)
         ).sort((a,b) => b.archivedAt - a.archivedAt);
@@ -208,7 +207,7 @@
                 <div class="arch-info">📑 ${t.name} | 💰 ¥${p.am||0}</div>
                 <div class="arch-info" style="opacity:0.7">📅 ${new Date(p.createdAt).toLocaleDateString()} ~ ${new Date(p.archivedAt).toLocaleDateString()}</div>
             </div>`;
-        }).join(filtered.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px; color:var(--text-sub)">无匹配归档</div>');
+        }).join(filtered.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px; color:var(--text-sub)">未发现符合条件的归档项目</div>');
     };
 
     window.renderTplList = () => {
@@ -237,7 +236,6 @@
             </div>`).join('');
     };
 
-    // --- 同步逻辑 ---
     window.saveToDB = async (p) => {
         window.updateStatus(true);
         await fetch(API_URL + "/", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({...p, logs: JSON.stringify(p.logs || [])})});
@@ -249,7 +247,6 @@
         window.updateStatus(false);
     };
 
-    // --- 事件逻辑 ---
     window.switchView = (v) => {
         document.querySelectorAll('.view-section').forEach(s => s.classList.remove('view-active'));
         document.getElementById(v === 'home' ? 'viewHome' : 'viewArchive').classList.add('view-active');
@@ -272,7 +269,6 @@
     window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
     window.saveMemo = (id, v) => { const p = STATE.all.find(x=>x.id===id); if(p && p.memo!==v){ p.memo=v; window.saveToDB(p); } };
     
-    // 模板操作
     window.saveTplName = async (id, val) => { const t = STATE.tpls.find(x=>x.id===id); if(t && t.name!==val){ t.name=val; await window.postTpl(t); } };
     window.editStep = async (id, idx, val) => { const t = STATE.tpls.find(x=>x.id===id); if(t && t.steps[idx]!==val){ t.steps[idx]=val; await window.postTpl(t); } };
     window.addStep = async (id) => { const t = STATE.tpls.find(x=>x.id===id); t.steps.push("新步骤"); await window.postTpl(t); window.renderTplList(); };
