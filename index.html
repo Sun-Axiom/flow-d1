@@ -64,7 +64,7 @@
 <div class="nav-header">
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
-            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.27-Fix</span>
+            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.27-Stable</span>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
@@ -165,23 +165,22 @@
         document.querySelectorAll('.memo-area').forEach(el => window.autoSize(el));
     };
 
-    // --- 核心修复：添加并保存项目 ---
     window.addP = async () => {
         const n = document.getElementById("ipt_n").value.trim();
         const tplId = document.getElementById("ipt_tpl").value;
         if(!n || !tplId) return alert("请填写名称并选择流程");
-        
         const newP = { 
             id: 'p-' + Date.now(), 
             n: n, 
             tpl: tplId, 
-            un: document.getElementById("ipt_un").value.trim(), 
+            un: document.getElementById("ipt_un").value.trim() || "-", 
             am: Number(document.getElementById("ipt_am").value) || 0, 
             s: 0, 
+            memo: "", 
             isArchived: 0, 
             createdAt: Date.now() 
         };
-
+        
         window.updateStatus(true);
         try {
             const res = await fetch(API_URL + "/", {
@@ -189,54 +188,49 @@
                 headers: {"Content-Type":"application/json"},
                 body: JSON.stringify(newP)
             });
-            if (res.ok) {
+            if(res.ok) {
                 STATE.all.unshift(newP); 
                 window.renderHome();
                 window.closeModal("addModal");
-                document.getElementById("ipt_n").value = "";
-                document.getElementById("ipt_un").value = "";
-                document.getElementById("ipt_am").value = "";
+                ["ipt_n", "ipt_un", "ipt_am"].forEach(id => document.getElementById(id).value = "");
             } else {
-                alert("保存失败，请检查后端服务状态");
+                alert("新建失败: " + res.status);
             }
-        } catch (e) {
-            alert("网络错误，无法连接到 API");
+        } catch(e) {
+            alert("网络同步错误");
         } finally {
             window.updateStatus(false);
         }
     };
 
-    // --- 核心修复：更新进度并保存 ---
     window.updateStep = async (id, v) => { 
         const p = STATE.all.find(x => x.id === id); 
-        if (!p) return;
-        const oldStep = p.s;
+        if(!p) return;
+        const old = p.s;
         p.s = Number(v); 
-        window.renderHome(); // 先渲染，保证 UI 响应快
+        window.renderHome(); 
         try {
             await window.apiPost("/", p); 
         } catch(e) {
-            p.s = oldStep; // 失败回滚
+            p.s = old;
             window.renderHome();
             alert("进度保存失败");
         }
     };
 
-    // --- 核心修复：保存备注 ---
     window.saveMemo = async (id, v) => { 
         const p = STATE.all.find(x => x.id === id); 
-        if (!p || p.memo === v) return; 
-        const oldMemo = p.memo;
+        if (!p || (p.memo || "") === v) return; 
+        const old = p.memo;
         p.memo = v; 
         try {
             await window.apiPost("/", p); 
         } catch(e) {
-            p.memo = oldMemo;
+            p.memo = old;
             alert("备注保存失败");
         }
     };
 
-    // --- 归档逻辑保持不变 ---
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const archP = STATE.all.filter(p => p.isArchived);
@@ -305,7 +299,6 @@
         window.switchView('home');
     };
 
-    // --- 模板管理 (维持 V1.0.27 原样) ---
     window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
     window.toggleTplEdit = () => {
         IS_TPL_EDITING = !IS_TPL_EDITING;
@@ -346,30 +339,9 @@
     window.closeModal = (id) => document.getElementById(id).style.display = "none";
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
     
-    // 模板操作函数保持不变
     window.renameCategory = async (old, n) => { if(!n.trim() || old===n) return; for(let t of STATE.tpls.filter(x=>x.cat===old)){ t.cat=n; await window.apiPost("/templates", t); } window.loadData(); };
     window.saveTplName = async (id, v) => { const t=STATE.tpls.find(x=>x.id===id); t.name=v; await window.apiPost("/templates", t); };
     window.moveTplCategory = async (id, c) => { const t=STATE.tpls.find(x=>x.id===id); t.cat=c; await window.apiPost("/templates", t); window.loadData(); };
     window.editStep = async (id, idx, v) => { const t=STATE.tpls.find(x=>x.id===id); let s=JSON.parse(t.steps); s[idx]=v; t.steps=JSON.stringify(s); await window.apiPost("/templates", t); };
     window.addStep = async (id) => { const t=STATE.tpls.find(x=>x.id===id); let s=JSON.parse(t.steps); s.push("新步骤"); t.steps=JSON.stringify(s); await window.apiPost("/templates", t); window.renderTplList(); };
-    window.removeStep = async (id, idx) => { const t=STATE.tpls.find(x=>x.id===id); let s=JSON.parse(t.steps); s.splice(idx,1); t.steps=JSON.stringify(s); await window.apiPost("/templates", t); window.renderTplList(); };
-    window.addNewTpl = async () => { const n=prompt("模板名:"); if(!n) return; await window.apiPost("/templates", {id:'t-'+Date.now(), name:n, cat:CUR_TAB, steps:'["新环节"]'}); window.loadData(); };
-    window.delTpl = async (id) => { if(confirm("删除流程？")){ await fetch(API_URL+"/templates/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); window.loadData(); } };
-    window.addCategory = () => { const n=prompt("分类名:"); if(n) { CUR_TAB = n; window.renderTplList(); } };
-
-    window.autoTheme = () => {
-        const hour = new Date().getHours();
-        const isDark = (hour >= 18 || hour < 7) || window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const t = localStorage.getItem('flow-theme-manual') || (isDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', t);
-        document.getElementById('themeBtn').innerText = t === 'dark' ? '🌙' : '☀️';
-    };
-    window.toggleThemeManual = () => {
-        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('flow-theme-manual', next);
-        document.getElementById('themeBtn').innerText = next === 'dark' ? '🌙' : '☀️';
-    };
-</script>
-</body>
-</html>
+    window.removeStep =
