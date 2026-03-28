@@ -1,119 +1,83 @@
-🚀 Project Flow Manager | 项目流管理器 “让每一个项目，都像艺术品一样流动。”
+这是一份为你量身定制的 **README.md**。它采用了你偏好的 **“ins 风格” (极简且美观)** 布局，并详细记录了前端与后端的部署流程。
 
-这是一个基于 GitHub API 构建的极简、私密、且具备高度审美视觉的项目进度管理工具。专为追求高效与界面美感的独立开发者/产品经理设计。
+你可以直接将以下内容保存为项目根目录下的 `README.md`。
 
-📸 视觉哲学 (Design Philosophy) Ins-Style UI: 采用微渐变、毛玻璃滤镜（Backdrop Blur）与卡片式布局。
+---
 
-Aesthetic Palette: 经过挑选的 8 种马卡龙色系顶部饰条，自动区分不同项目。
+# 📦 Project Flow Manager (V1.0.42)
 
-Dynamic Response: 流畅的进度条动画与直观的状态反馈。
+一个基于 **Cloudflare Workers + D1 Database** 构建的极简主义项目流管理系统。支持自定义工作流、实时进度跟踪、项目归档以及物理删除功能。
 
-✨ 核心特性 (Key Features)
+![Version](https://img.shields.io/badge/Version-1.0.42-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![Platform](https://img.shields.io/badge/Platform-Cloudflare-orange?style=flat-square)
 
-流程自定义 (Dynamic Workflow) 不仅仅是简单的 To-Do。你可以自由定义“立项-审核-执行-结算”等任何阶段。每个项目都能适配专属的生命周期。
+## ✨ 特性
+- **Ins Style UI**: 极简视觉设计，支持深色/浅色模式切换。
+- **自定义流程**: 自由创建分类与步骤，适配不同业务场景。
+- **动态归档**: 完善的归档库管理，支持按年份、流程、关键词多维筛选。
+- **物理删除**: 彻底清理数据库冗余，保持系统轻量。
+- **单位/金额管理**: 在极简布局中集成核心业务信息。
 
-GitHub 无感同步 (Cloud Native) 无需后端服务器。利用 GitHub API 实现数据的全自动持久化存储，让你的私人项目流随处可用且永不丢失。
+---
 
-智能归档库 (Smart Archive) 时光机: 记录每个项目的起始与终结。
+## 🚀 部署教程
 
-极简卡片: 220px 紧凑布局，一眼纵览历史沉淀。
+### 1. 后端部署 (Cloudflare Worker)
 
-搜索与筛选: 支持按年份、流程分类及关键字实时检索。
+后端负责处理 API 请求并操作 D1 数据库。
 
-安全锁: 归档超过 30 天的项目将自动锁定，防止手抖误删。
+1. **创建 D1 数据库**:
+   - 登录 Cloudflare 控制台，进入 `Workers & Pages` -> `D1`。
+   - 创建一个新数据库，命名为 `flow-db`。
+   - 在控制台的 **SQL 控制台** 执行以下初始化命令：
+     ```sql
+     CREATE TABLE projects (id TEXT PRIMARY KEY, n TEXT, tpl TEXT, un TEXT, am REAL, s INTEGER, memo TEXT, isPinned INTEGER, isArchived INTEGER, logs TEXT, createdAt INTEGER, archivedAt INTEGER);
+     CREATE TABLE templates (id TEXT PRIMARY KEY, name TEXT, cat TEXT, steps TEXT);
+     ```
 
-效率补丁 (Efficiency Tweaks) 📌 快捷置顶: 重要项目始终保持在视线焦点。 🕒 变更日志: 自动记录每一次步骤调整与备注更新。
+2. **部署 Worker 代码**:
+   - 创建一个新的 Worker，将 `worker.js` (即我们调试好的修复版) 代码粘贴进去。
+   - 在 Worker 设置中，点击 **Settings** -> **Bindings** -> **Add Binding**。
+   - 选择 **D1 database**，变量名填入 `DB`，并关联你刚才创建的 `flow-db`。
 
-💰 预算追踪: 实时掌控每个项目价值。
+3. **获取 API 地址**:
+   - 部署后，你会得到一个类似 `https://api-flow.yourname.workers.dev` 的地址。
 
-🛠️ 技术栈 (Tech Stack) Logic: Pure JavaScript (Vanilla JS)
+### 2. 前端部署 (GitHub Pages)
 
-Style: CSS3 Flex/Grid + Glassmorphism
+前端是一个纯静态的 HTML 文件。
 
-Data: GitHub REST API
+1. **修改 API 配置**:
+   - 打开 `index.html`，将代码顶部的 `const API_URL = "..."` 修改为你刚才获取的 Worker 地址。
 
-Platform: Cloudflare Pages / Vercel / GitHub Pages
+2. **上传至 GitHub**:
+   - 将 `index.html` 推送到你的 GitHub 仓库（例如 `work-flow`）。
 
-🚀 快速开始 (Quick Start) Fork 本仓库。
+3. **开启 Pages**:
+   - 在仓库设置中开启 GitHub Pages，选择 `main` 分支作为部署源。
+   - (可选) 配置你的自定义域名，如 `flows.roll.ccwu.cc`。
 
-在控制台输入你的 GitHub Personal Access Token 及仓库信息。
+---
 
-开启你的高效管理之旅。
+## 🛠️ 技术栈
+- **Frontend**: Vanilla JavaScript, CSS3 (CSS Variables), HTML5.
+- **Backend**: Cloudflare Workers (Runtime).
+- **Storage**: Cloudflare D1 (SQLite).
+- **Icons**: Emoji based (Zero assets dependency).
 
-Bash
+## 📅 版本更新日志
+### V1.0.42 (Current)
+- **修复**: 解决了归档项目无法物理删除导致的 500/404 错误。
+- **优化**: 归档库筛选栏布局调整，搜索框支持响应式填充。
+- **新增**: 在归档卡片中显式标注“单位名称”。
 
-不需要安装依赖，直接打开 index.html 即可运行 open index.html 📅 版本迭代 (Changelog) v1.3.12: 归档卡片样式大一统，日期合并，视觉密度再优化。
+---
 
-v1.3.10: 引入 220px 档案柜式栅格布局，移除冗余按钮。
+## 📄 开源协议
+本项目采用 [MIT](LICENSE) 协议开源。
 
-v1.3.0: 接入 GitHub API，实现真正意义上的云端同步。
+---
 
-💌 结语 保持专注，让流程自然发生。
-
-既然这个项目（暂且称之为 Project Flow v1.5.5）已经具备了 GitHub 云端同步、智能主题切换以及复杂的流程管理功能，那么部署它的核心就在于 GitHub 仓库的配置。
-
-这份文档将引导一个“小白”用户从零开始，在 5 分钟内搭建起这套私人的项目流管理系统。
-
-🚀 Project Flow 项目流管理系统部署指南
-本系统是一个**无服务器（Serverless）**的纯前端项目。它通过 GitHub API 将数据存储在您的私人仓库中，实现多端同步和永久存储。
-
-📥 第一步：准备 GitHub 仓库
-由于系统需要读取和写入数据，我们需要准备两个基础文件。
-
-创建一个新仓库：
-登录 GitHub，点击 New repository。
-仓库名称建议：workflow-data。
-权限选择：建议设为 Private（私有），保护您的项目数据。
-创建数据文件 data.json：
-在仓库根目录新建一个文件，命名为 data.json。
-内容填入：{"projects": [], "trash": []}。
-创建流程模板文件 template.json：
-在仓库根目录新建另一个文件，命名为 template.json。
-内容建议填入以下初始模板：
-{
-  "通用流程": ["开始", "进行中", "已完成"],
-  "开发流程": ["需求", "编码", "测试", "发布"]
-}
-获取模板直链：点击 GitHub 仓库中的 template.json 文件，点击右上角的 Raw 按钮，复制该地址。
-提示：这个地址将填入代码中的 GLOBAL_TPL_URL 变量处。
-🔑 第二步：生成 GitHub 访问令牌 (Token)
-为了让网页能够把数据保存到您的 GitHub 仓库，您需要授权。
-
-访问 GitHub 的 Settings > Developer settings > Personal access tokens (classic)。
-点击 Generate new token (classic)。
-Note（备注）：填写 Workflow-Key。
-Expiration（过期时间）：建议选 No expiration（永不过期）。
-Scopes（权限范围）：勾选 repo 这一整项即可（这将允许系统读写您的私有仓库）。
-保存 Token：点击底部的 Generate token，务必立即复制并保存这个 Token，因为它只会出现一次！
-💻 第三步：本地配置与部署
-现在我们将代码（index.html）与您的 GitHub 仓库建立连接。
-
-修改代码变量（找到 script 标签的前几行）：
-将 GLOBAL_TPL_URL 的值替换为您在第一步复制的 template.json 的 Raw 链接。
-启动网页：
-将代码保存为 index.html。
-使用任何浏览器打开该文件，或将其上传到您的个人服务器（如 OpenWrt 的 iStore 导航、Cloudflare Pages 等）。
-初始化配置：
-第一次打开页面，系统会自动弹出 🔑 云端配置 对话框。
-User：填写您的 GitHub 用户名。
-Repo：填写您的仓库名（如 workflow-data）。
-Token：填入您在第二步生成的访问令牌。
-点击 保存。
-🛠️ 第四步：进阶使用与流程更新
-1. 修改流程模板
-如果您需要增加或修改业务流程：
-
-直接在 GitHub 仓库中编辑 template.json。
-回到网页端，点击 “⚙️ 流程设置”。
-点击弹窗右上角的 “🔄 强制同步” 按钮。由于我们加入了随机指纹（Cache Busting）逻辑，系统会瞬间绕过 GitHub CDN 缓存，拉取最新定义的流程。
-2. 日夜模式自动切换
-06:00 - 18:00：自动切换至日间模式（浅灰背景）。
-18:00 - 次日 06:00：自动切换至夜间模式（深黑背景，护眼适配）。
-提示：系统每分钟会自动检查一次时间并进行无缝切换。
-❓ 常见问题排查 (Q&A)
-Q: 点击保存后，右上角的同步圆点一直是橙色的？
-A: 请检查 GitHub Token 是否正确勾选了 repo 权限，以及仓库名称是否填错。
-Q: 为什么我改了 template.json，网页端还没更新？
-A: 请确保点击了“流程设置”弹窗里的“强制同步”按钮。如果还没变，检查 JSON 格式是否有效（缺少逗号或括号会导致解析失败）。
-Q: 可以在手机上使用吗？
-A: 可以。该项目采用了响应式设计，在手机浏览器中访问时，卡片会自动堆叠显示。
+> **Would you like me to ...**
+> 帮你把这个 README 的内容直接推送到你的 GitHub 仓库中，还是你需要我再补充一些关于 D1 数据库自动备份的建议？
