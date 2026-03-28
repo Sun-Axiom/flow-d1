@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.27</title>
+    <title>项目流管理器 V1.0.30</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
@@ -31,11 +31,9 @@
         .btn-theme { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
         .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 8px; font-size: 12px; }
         
-        /* 卡片与网格 */
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
         .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         
-        /* 归档卡片专用（更紧凑） */
         .archive-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         .archive-card { padding: 15px; background: var(--input-bg); border-style: dashed; }
         .btn-delete-x { position: absolute; top: 10px; right: 10px; color: var(--danger); cursor: pointer; font-size: 18px; font-weight: bold; opacity: 0.5; transition: 0.2s; }
@@ -44,7 +42,6 @@
         .prog-bar-bg { background: var(--step-bg); height: 8px; border-radius: 4px; margin: 12px 0; overflow: hidden; border: 1px solid var(--border-color); }
         .prog-bar-fill { height: 100%; transition: width 0.4s ease, background 0.3s ease; }
 
-        /* 模板编辑器样式 */
         .tabs-nav { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; overflow-x: auto; padding-bottom: 2px; }
         .tab-item { padding: 8px 16px; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 14px; color: var(--text-sub); border: 1px solid transparent; white-space: nowrap; }
         .tab-active { color: var(--prog-doing); border: 1px solid var(--border-color); border-bottom: 2px solid var(--card-bg); margin-bottom: -2px; font-weight: bold; background: var(--card-bg); }
@@ -172,7 +169,18 @@
         const n = document.getElementById("ipt_n").value.trim();
         const tplId = document.getElementById("ipt_tpl").value;
         if(!n || !tplId) return alert("请填写名称并选择流程");
-        const newP = { id: 'p-' + Date.now(), n: n, tpl: tplId, un: document.getElementById("ipt_un").value.trim(), am: Number(document.getElementById("ipt_am").value) || 0, s: 0, isArchived: 0, createdAt: Date.now() };
+        // 补丁：确保不传 undefined
+        const newP = { 
+            id: 'p-' + Date.now(), 
+            n: n, 
+            tpl: tplId, 
+            un: document.getElementById("ipt_un").value.trim() || "-", 
+            am: Number(document.getElementById("ipt_am").value) || 0, 
+            s: 0, 
+            memo: "",
+            isArchived: 0, 
+            createdAt: Date.now() 
+        };
         STATE.all.unshift(newP); 
         window.renderHome();
         window.closeModal("addModal");
@@ -180,16 +188,13 @@
         await window.apiPost("/", newP);
     };
 
-    // --- 归档库优化版本 ---
     window.renderArchive = () => {
         const grid = document.getElementById("archiveGrid");
         const archP = STATE.all.filter(p => p.isArchived);
-        
         const years = [...new Set(archP.map(p => new Date(p.createdAt).getFullYear()))].sort((a,b)=>b-a);
         const ySel = document.getElementById("archYear");
         const curY = ySel.value;
         ySel.innerHTML = '<option value="">年份</option>' + years.map(y => `<option value="${y}" ${curY==y?'selected':''}>${y}年</option>`).join('');
-
         const tplIds = [...new Set(archP.map(p => p.tpl))];
         const tSel = document.getElementById("archTpl");
         const curT = tSel.value;
@@ -197,7 +202,6 @@
             const t = STATE.tpls.find(x => x.id === id);
             return t ? `<option value="${t.id}" ${curT==t.id?'selected':''}>${t.name}</option>` : '';
         }).join('');
-
         const q = document.getElementById("archSearch").value.toLowerCase();
         const filtered = archP.filter(p => {
             const matchQ = p.n.toLowerCase().includes(q) || (p.un && p.un.toLowerCase().includes(q));
@@ -205,7 +209,6 @@
             const matchT = curT ? p.tpl === curT : true;
             return matchQ && matchY && matchT;
         });
-
         grid.innerHTML = filtered.map(p => {
             const tpl = STATE.tpls.find(t => t.id === p.tpl) || {name:"-"};
             const dateStart = new Date(p.createdAt).toLocaleDateString();
@@ -240,7 +243,7 @@
     window.archiveProject = async (id) => {
         const p = STATE.all.find(x => x.id === id);
         p.isArchived = 1;
-        p.archivedAt = Date.now(); // 记录归档时间
+        p.archivedAt = Date.now();
         window.renderHome();
         await window.apiPost("/", p);
     };
@@ -253,7 +256,6 @@
         window.switchView('home');
     };
 
-    // --- 模板管理逻辑 (完全不动) ---
     window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
     window.toggleTplEdit = () => {
         IS_TPL_EDITING = !IS_TPL_EDITING;
@@ -276,7 +278,6 @@
         }).join(filtered.length ? '' : '<div style="color:#999; padding:30px; text-align:center;">暂无模板。</div>');
     };
 
-    // --- 辅助工具 ---
     window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
     window.apiPost = async (p, d) => { window.updateStatus(true); await fetch(API_URL+p, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); window.updateStatus(false); };
     window.updateStep = async (id, v) => { const p=STATE.all.find(x=>x.id===id); p.s=Number(v); window.renderHome(); await window.apiPost("/", p); };
@@ -288,7 +289,6 @@
     window.closeModal = (id) => document.getElementById(id).style.display = "none";
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
     
-    // 模板微调
     window.renameCategory = async (old, n) => { if(!n.trim() || old===n) return; for(let t of STATE.tpls.filter(x=>x.cat===old)){ t.cat=n; await window.apiPost("/templates", t); } window.loadData(); };
     window.saveTplName = async (id, v) => { const t=STATE.tpls.find(x=>x.id===id); t.name=v; await window.apiPost("/templates", t); };
     window.moveTplCategory = async (id, c) => { const t=STATE.tpls.find(x=>x.id===id); t.cat=c; await window.apiPost("/templates", t); window.loadData(); };
