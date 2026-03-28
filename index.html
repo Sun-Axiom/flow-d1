@@ -3,65 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目流管理器 V1.0.33-Final</title>
+    <title>项目流管理器 V1.0.36-Pro</title>
     <style>
         :root { 
             --bg-color: #f7f8fa; --nav-bg: rgba(255, 255, 255, 0.9); --card-bg: #ffffff; 
             --text-main: #262626; --text-sub: #8c8c8c; --border-color: #eef0f2; 
             --input-bg: #fafafa; --modal-bg: rgba(0, 0, 0, 0.6); 
             --step-bg: #ffffff; --step-border: #d1d1d1;
-            --prog-doing: #1890ff; --prog-done: #52c41a; --danger: #ff4d4f;
-            --tab-color: #1890ff;
+            --tab-color: #1890ff; --pinned-color: #ff4d4f;
         }
         [data-theme="dark"] { 
             --bg-color: #121212; --nav-bg: rgba(30, 30, 30, 0.9); --card-bg: #1e1e1e; 
             --text-main: #e0e0e0; --text-sub: #aaaaaa; --border-color: #333333; 
             --input-bg: #2d2d2d; --modal-bg: rgba(0, 0, 0, 0.85);
-            --step-bg: #2d2d2d; --step-border: #444;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 50px; min-height: 100vh; }
         
         .nav-header { height: 60px; background: var(--nav-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; position: sticky; top: 0; z-index: 1000; }
         .nav-content { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .logo-text { font-size: 18px; font-weight: 800; }
         
         .view-section { display: none; max-width: 1200px; margin: 25px auto; padding: 0 20px; }
         .view-active { display: block !important; }
         
-        .btn-black { background: #262626; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
-        .btn-theme { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 8px; font-size: 12px; }
-        
         .grid-container { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; position: relative; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .card-pinned { border: 2px solid var(--pinned-color) !important; box-shadow: 0 4px 15px rgba(255, 77, 79, 0.15); }
         
-        .prog-bar-bg { background: var(--input-bg); height: 8px; border-radius: 4px; margin: 12px 0; overflow: hidden; border: 1px solid var(--border-color); }
-        .prog-bar-fill { height: 100%; transition: width 0.4s ease; }
+        /* 进度条样式 */
+        .prog-bar-bg { background: var(--input-bg); height: 10px; border-radius: 5px; margin: 15px 0; overflow: hidden; border: 1px solid var(--border-color); }
+        .prog-bar-fill { height: 100%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s; }
 
-        .tabs-nav { display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .tab-item { padding: 10px 20px; cursor: pointer; border-radius: 12px 12px 0 0; font-size: 14px; color: var(--text-sub); border: 1px solid var(--border-color); border-bottom: none; white-space: nowrap; background: var(--input-bg); }
-        .tab-active { color: #fff !important; font-weight: bold; background: var(--tab-color) !important; border-color: transparent; }
+        /* 置顶按钮 */
+        .pin-btn { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 18px; opacity: 0.2; transition: 0.2s; z-index: 10; filter: grayscale(1); }
+        .pin-btn:hover { opacity: 0.8; transform: scale(1.2); }
+        .pin-active { opacity: 1 !important; filter: grayscale(0) !important; transform: rotate(-45deg); }
+        
+        .btn-black { background: #262626; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        .f-input { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-bottom: 8px; font-size: 12px; }
 
-        .tpl-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; border-left: 5px solid var(--tab-color); }
-        .steps-wrapper { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 15px; }
-        .step-box { 
-            background: var(--step-bg); border: 2px solid var(--border-color); 
-            padding: 12px 20px; border-radius: 12px; font-size: 14px; 
-            display: inline-flex; align-items: center; gap: 8px; position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02); min-width: 110px; justify-content: center;
-        }
-        .step-arrow { color: var(--text-sub); font-size: 20px; opacity: 0.4; font-weight: bold; }
-        .edit-active .step-box { border: 2px dashed var(--prog-doing); }
-
+        /* 日志触发器 */
+        .log-trigger { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; color: var(--text-sub); transition: 0.2s; background: var(--input-bg); }
+        .log-trigger:hover { background: var(--border-color); color: var(--text-main); transform: rotate(-15deg); }
+        
         .modal { position: fixed; inset: 0; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
-        .modal-box { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; }
+        .modal-box { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 95%; max-width: 450px; }
         
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #52c41a; margin-right: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #52c41a; display: inline-block; margin-right: 5px; }
         .dot-syncing { background: #fa8c16; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
-        .btn-del-step { display: none; position: absolute; top: -10px; right: -10px; background: var(--danger); color: #fff; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; line-height: 20px; text-align: center; cursor: pointer; border: 2px solid var(--card-bg); }
-        .edit-active .btn-del-step { display: block; }
+
+        .memo-area { height: 45px; resize: none; background: var(--input-bg); border: 1px solid transparent; border-radius: 8px; padding: 8px; width: 100%; font-size: 12px; color: var(--text-main); outline: none; transition: 0.2s; }
+        .memo-area:focus { border-color: var(--tab-color); background: var(--card-bg); }
     </style>
 </head>
 <body>
@@ -69,13 +63,11 @@
 <div class="nav-header">
     <div class="nav-content">
         <div onclick="window.switchView('home')" style="cursor:pointer">
-            <span class="logo-text">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">V1.0.33</span>
+            <span style="font-size:18px; font-weight:800;">项目流管理器</span><span style="font-size:10px; color:var(--text-sub); margin-left:5px;">PRO</span>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="syncIndicator" class="status-dot"></span>
-            <button id="themeBtn" class="btn-theme" onclick="window.toggleThemeManual()">☀️</button>
-            <button class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.showTplMgr()">⚙️ 流程设置</button>
-            <button class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.switchView('archive')">📂 归档库</button>
+            <button class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.location.reload()">🔄 刷新</button>
             <button class="btn-black" onclick="window.showAdd()">+ 新建项目</button>
         </div>
     </div>
@@ -83,15 +75,7 @@
 
 <div id="viewHome" class="view-section view-active"><div id="projectList" class="grid-container"></div></div>
 
-<div id="viewArchive" class="view-section">
-    <div style="display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
-        <input type="text" id="archSearch" class="f-input" style="flex:1; margin:0;" placeholder="搜索归档项目..." oninput="window.renderArchive()">
-        <button class="btn-black" onclick="window.switchView('home')">🏠 返回</button>
-    </div>
-    <div id="archiveGrid" class="grid-container"></div>
-</div>
-
-<div id="addModal" class="modal"><div class="modal-box" style="max-width:400px;">
+<div id="addModal" class="modal"><div class="modal-box">
     <h3>✨ 新建项目</h3><br>
     <input type="text" id="ipt_n" class="f-input" placeholder="项目名称">
     <select id="ipt_tpl" class="f-input"></select>
@@ -103,191 +87,175 @@
     </div>
 </div></div>
 
-<div id="tplModal" class="modal"><div class="modal-box">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3>⚙️ 流程与模板管理</h3>
-        <div style="display:flex; gap:10px;">
-            <button id="tplEditBtn" class="btn-black" style="background:var(--border-color); color:var(--text-main);" onclick="window.toggleTplEdit()">✍️ 修改模式</button>
-            <button id="tplAddTabBtn" class="btn-black" style="display:none; background:var(--prog-doing)" onclick="window.addCategory()">+ 新标签页</button>
-            <button id="tplAddBtn" class="btn-black" style="display:none; background:var(--prog-done)" onclick="window.addNewTpl()">+ 新流程</button>
-        </div>
-    </div>
-    <div id="tabsNav" class="tabs-nav"></div>
-    <div id="tplList" style="min-height:300px;"></div>
-    <button class="btn-black" style="width:100%; margin-top:15px; justify-content:center; height:45px;" onclick="window.closeModal('tplModal')">确认并关闭</button>
-</div></div>
-
 <script>
     const API_URL = "https://api-flow.roll.ccwu.cc";
     let STATE = { all: [], tpls: [] };
-    let CUR_TAB = "默认分类";
-    let IS_TPL_EDITING = false;
 
-    window.onload = () => { window.autoTheme(); window.loadData(); };
+    window.onload = () => { window.loadData(); };
 
-    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
-    
+    // 动态进度颜色算法：从绿(120)到红(0)
+    const getProgColor = (pct) => {
+        // 0% -> HSL(120, 70%, 45%) 绿
+        // 100% -> HSL(0, 70%, 45%) 红
+        const hue = 120 - (pct * 1.2);
+        return `hsl(${hue}, 70%, 45%)`;
+    };
+
     window.loadData = async () => {
         window.updateStatus(true);
         try {
             const [pRes, tRes] = await Promise.all([
-                fetch(API_URL).then(r => r.json()).catch(() => []),
-                fetch(API_URL + "/templates").then(r => r.json()).catch(() => [])
+                fetch(API_URL).then(r => r.json()),
+                fetch(API_URL + "/templates").then(r => r.json())
             ]);
-            STATE.all = pRes.map(p => ({...p, s: Number(p.s), am: Number(p.am), isArchived: Number(p.isArchived)}));
-            STATE.tpls = tRes.map(t => {
-                let steps = ["步骤一"];
-                try { steps = typeof t.steps === 'string' ? JSON.parse(t.steps) : t.steps; } catch(e){}
-                return { ...t, cat: t.cat || "默认分类", steps };
-            });
+            STATE.all = pRes.map(p => ({
+                ...p, 
+                s: Number(p.s), 
+                isPinned: Number(p.isPinned || 0),
+                logs: JSON.parse(p.logs || '[]')
+            }));
+            STATE.tpls = tRes.map(t => ({...t, steps: JSON.parse(t.steps || '[]')}));
             window.renderHome();
             window.updateTplSelect();
+        } catch(e) {
+            console.error("加载失败", e);
         } finally { window.updateStatus(false); }
     };
 
     window.renderHome = () => {
-        const home = document.getElementById("projectList");
-        const active = STATE.all.filter(p => !p.isArchived);
-        home.innerHTML = active.map(p => {
-            const tpl = STATE.tpls.find(t => t.id === p.tpl) || { name: "未知", steps: ["载入中"] };
+        const list = document.getElementById("projectList");
+        // 排序：置顶优先，其次按创建时间倒序
+        const sorted = STATE.all.filter(p => !p.isArchived).sort((a,b) => b.isPinned - a.isPinned || b.createdAt - a.createdAt);
+        
+        list.innerHTML = sorted.map(p => {
+            const tpl = STATE.tpls.find(t => t.id === p.tpl) || { name: "未知", steps: ["数据加载中"] };
             const pct = Math.min(Math.round(((p.s + 1) / tpl.steps.length) * 100), 100);
-            return `<div class="card">
-                <div style="font-weight:800; font-size:16px; margin-bottom:4px;">📦 ${p.n}</div>
+            const color = getProgColor(pct);
+
+            return `
+            <div class="card ${p.isPinned ? 'card-pinned' : ''}">
+                <div class="pin-btn ${p.isPinned ? 'pin-active' : ''}" onclick="window.togglePin('${p.id}')" title="置顶项目">📌</div>
+                <div style="font-weight:800; font-size:16px; margin-bottom:4px; padding-right:25px;">${p.n}</div>
                 <div style="font-size:11px; color:var(--text-sub); margin-bottom:12px;">🔖 ${tpl.name} | 🏢 ${p.un||'-'} | 💰 ¥${p.am||0}</div>
-                <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%; background:${pct===100?'var(--prog-done)':'var(--prog-doing)'}"></div></div>
+                
+                <div class="prog-bar-bg">
+                    <div class="prog-bar-fill" style="width:${pct}%; background-color:${color}; box-shadow: 0 0 12px ${color}33"></div>
+                </div>
+
                 <select class="f-input" onchange="window.updateStep('${p.id}', this.value)">
                     ${tpl.steps.map((s, i) => `<option value="${i}" ${p.s==i?'selected':''}>${i+1}. ${s}</option>`).join('')}
                 </select>
-                <textarea class="memo-area" placeholder="添加备注..." onblur="window.saveMemo('${p.id}', this.value)" style="border:none; background:var(--input-bg); padding:8px; border-radius:8px; width:100%; font-size:11px; color:var(--text-main); resize:none; outline:none; min-height:40px;">${p.memo || ''}</textarea>
-                <button class="f-input" style="cursor:pointer; color:var(--prog-doing); border-style:dashed; margin-top:5px; background:none;" onclick="window.archiveProject('${p.id}')">完成并归档项目</button>
+
+                <textarea class="memo-area" onblur="window.saveMemo('${p.id}', this.value)" placeholder="添加备注...">${p.memo||''}</textarea>
+
+                <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
+                    <div class="log-trigger" onclick="window.showLogs('${p.id}')" title="查看变更记录">🕒</div>
+                    <button class="btn-black" style="flex:1; background:none; color:var(--text-sub); border:1px solid var(--border-color); font-size:11px;" onclick="window.archiveProject('${p.id}')">完成并归档项目</button>
+                </div>
             </div>`;
-        }).join(active.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">暂无进行中项目</div>');
+        }).join(sorted.length ? '' : '<div style="grid-column:1/-1; text-align:center; padding:100px; color:var(--text-sub)">暂无进行中的项目</div>');
     };
 
-    // --- 核心修复：通用 POST 保存逻辑 ---
-    window.saveProjectToDB = async (projectObj) => {
-        window.updateStatus(true);
-        // 数据清洗：确保类型严格符合 D1 要求
-        const cleanData = {
-            id: String(projectObj.id),
-            n: String(projectObj.n),
-            tpl: String(projectObj.tpl),
-            un: String(projectObj.un || ""),
-            am: Number(projectObj.am || 0),
-            s: Number(projectObj.s || 0),
-            memo: String(projectObj.memo || ""),
-            isArchived: Number(projectObj.isArchived || 0),
-            createdAt: projectObj.createdAt
+    window.updateStep = async (id, v) => {
+        const p = STATE.all.find(x => x.id === id);
+        const tpl = STATE.tpls.find(t => t.id === p.tpl);
+        if(!p || !tpl) return;
+
+        p.s = Number(v);
+        // 记录日志 (保留最近3条)
+        const logEntry = { 
+            t: new Date().toLocaleString('zh-CN', {hour12:false}).slice(5, -3), // 简化时间格式 MM-DD HH:mm
+            n: tpl.steps[v] 
         };
-        
+        p.logs = [logEntry, ...(p.logs || [])].slice(0, 3);
+
+        window.renderHome();
+        await window.saveToDB(p);
+    };
+
+    window.togglePin = async (id) => {
+        const p = STATE.all.find(x => x.id === id);
+        if(!p) return;
+        p.isPinned = p.isPinned ? 0 : 1;
+        window.renderHome();
+        await window.saveToDB(p);
+    };
+
+    window.showLogs = (id) => {
+        const p = STATE.all.find(x => x.id === id);
+        if(!p) return;
+        const history = p.logs.length 
+            ? p.logs.map(l => `• ${l.t} : ${l.n}`).join('\n')
+            : "暂无历史记录";
+        alert(`【${p.n}】最近 3 次变更：\n\n${history}`);
+    };
+
+    window.saveMemo = (id, v) => {
+        const p = STATE.all.find(x => x.id === id);
+        if(p && p.memo !== v) {
+            p.memo = v;
+            window.saveToDB(p);
+        }
+    };
+
+    window.saveToDB = async (p) => {
+        window.updateStatus(true);
         try {
+            const data = {
+                ...p,
+                am: Number(p.am),
+                s: Number(p.s),
+                isPinned: Number(p.isPinned),
+                isArchived: Number(p.isArchived),
+                logs: JSON.stringify(p.logs || [])
+            };
             const res = await fetch(API_URL + "/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(cleanData)
+                body: JSON.stringify(data)
             });
-            if (!res.ok) {
-                const err = await res.text();
-                throw new Error(err);
-            }
-        } catch (e) {
-            alert("云端保存失败: " + e.message);
-            window.loadData(); // 失败则回滚到云端状态
+            if(!res.ok) throw new Error("保存失败");
+        } catch(e) {
+            console.error(e);
+            alert("云端同步失败，请检查网络或数据库字段是否已更新（需添加 isPinned, logs）");
         } finally {
             window.updateStatus(false);
         }
     };
 
-    window.updateStep = (id, v) => {
-        const p = STATE.all.find(x => x.id === id);
-        if (p) {
-            p.s = Number(v);
-            window.renderHome(); // 立即反馈 UI
-            window.saveProjectToDB(p); // 后台保存
-        }
-    };
-
-    window.saveMemo = (id, v) => {
-        const p = STATE.all.find(x => x.id === id);
-        if (p && p.memo !== v) {
-            p.memo = v;
-            window.saveProjectToDB(p);
-        }
-    };
-
     window.archiveProject = (id) => {
-        const p = STATE.all.find(x => x.id === id);
-        if (p) {
+        if(confirm("确定归档该项目吗？")){
+            const p = STATE.all.find(x => x.id === id);
             p.isArchived = 1;
             window.renderHome();
-            window.saveProjectToDB(p);
+            window.saveToDB(p);
         }
     };
 
-    // --- 模板管理相关逻辑 ---
-    window.apiPostTpl = async (data) => {
-        window.updateStatus(true);
-        const payload = JSON.parse(JSON.stringify(data));
-        if (Array.isArray(payload.steps)) payload.steps = JSON.stringify(payload.steps);
-        await fetch(API_URL + "/templates", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        await window.loadData();
+    window.addP = async () => {
+        const n = document.getElementById("ipt_n").value;
+        const tpl = document.getElementById("ipt_tpl").value;
+        if(!n || !tpl) return;
+        const newP = { 
+            id: 'p-'+Date.now(), n, tpl, 
+            un: document.getElementById("ipt_un").value, 
+            am: Number(document.getElementById("ipt_am").value), 
+            s: 0, memo: "", isPinned: 0, isArchived: 0, logs: '[]', createdAt: Date.now() 
+        };
+        await window.saveToDB(newP);
+        STATE.all.unshift(newP);
+        window.renderHome();
+        window.closeModal("addModal");
     };
 
-    window.renderTplList = () => {
-        const cats = [...new Set(STATE.tpls.map(t => t.cat))];
-        if (cats.length > 0 && !cats.includes(CUR_TAB)) CUR_TAB = cats[0];
-        const getTabColor = (str) => `hsl(${Math.abs(str.split('').reduce((a,b)=>a+b.charCodeAt(0),0)%360)}, 60%, 45%)`;
-        
-        document.documentElement.style.setProperty('--tab-color', getTabColor(CUR_TAB));
-        document.getElementById("tabsNav").innerHTML = cats.map(c => `
-            <div class="tab-item ${c === CUR_TAB ? 'tab-active' : ''}" onclick="window.switchTab('${c}')" 
-                 style="${c !== CUR_TAB ? `border-top: 3px solid ${getTabColor(c)}` : ''}">${IS_TPL_EDITING ? `<span contenteditable="true" onblur="window.renameCategory('${c}', this.innerText)" onclick="event.stopPropagation()">${c}</span>` : c}</div>`).join('');
-
-        const filtered = STATE.tpls.filter(t => t.cat === CUR_TAB);
-        document.getElementById("tplList").className = IS_TPL_EDITING ? "edit-active" : "";
-        document.getElementById("tplList").innerHTML = filtered.map(t => `
-            <div class="tpl-item" style="--tab-color:${getTabColor(CUR_TAB)}">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <div style="font-weight:bold;">📂 ${IS_TPL_EDITING ? `<span contenteditable="true" onblur="window.saveTplName('${t.id}', this.innerText)" style="border-bottom:1px dashed #999">${t.name}</span>` : t.name}</div>
-                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:var(--danger); font-size:11px;" onclick="window.delTpl('${t.id}')">🗑️ 删除</button>` : ''}
-                </div>
-                <div class="steps-wrapper">
-                    ${t.steps.map((s, i) => `<div class="step-box"><b style="color:var(--tab-color)">#${i+1}</b><span contenteditable="${IS_TPL_EDITING}" onblur="window.editStep('${t.id}', ${i}, this.innerText)">${s}</span><div class="btn-del-step" onclick="window.removeStep('${t.id}', ${i})">×</div></div>${i < t.steps.length - 1 ? '<span class="step-arrow">→</span>' : ''}`).join('')}
-                    ${IS_TPL_EDITING ? `<button class="btn-black" style="background:none; border:2px dashed var(--tab-color); color:var(--tab-color);" onclick="window.addStep('${t.id}')">+ 加步骤</button>` : ''}
-                </div>
-            </div>`).join('');
-    };
-
-    window.saveTplName = (id, n) => { const t = STATE.tpls.find(x=>x.id===id); if(t && t.name!==n.trim()){ t.name=n.trim(); window.apiPostTpl(t); }};
-    window.editStep = (id, idx, s) => { const t = STATE.tpls.find(x=>x.id===id); if(t && t.steps[idx]!==s.trim()){ t.steps[idx]=s.trim(); window.apiPostTpl(t); }};
-    window.addStep = (id) => { const t = STATE.tpls.find(x=>x.id===id); t.steps.push("新步骤"); window.apiPostTpl(t); };
-    window.removeStep = (id, idx) => { const t = STATE.tpls.find(x=>x.id===id); t.steps.splice(idx,1); window.apiPostTpl(t); };
-    window.renameCategory = async (old, n) => { if(!n.trim() || old===n.trim()) return; for(let t of STATE.tpls.filter(x=>x.cat===old)){ t.cat=n.trim(); await window.apiPostTpl(t); } CUR_TAB=n.trim(); };
-    window.delTpl = async (id) => { if(confirm("确定删除？")){ await fetch(API_URL+"/templates/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); window.loadData(); }};
-    window.switchTab = (c) => { CUR_TAB = c; window.renderTplList(); };
-    window.toggleTplEdit = () => { IS_TPL_EDITING = !IS_TPL_EDITING; document.getElementById("tplEditBtn").innerText = IS_TPL_EDITING ? "🔒 锁定" : "✍️ 修改模式"; document.getElementById("tplAddBtn").style.display = document.getElementById("tplAddTabBtn").style.display = IS_TPL_EDITING ? "block" : "none"; window.renderTplList(); };
-    window.addCategory = async () => { const n = prompt("分类名称:"); if(n) { await window.apiPostTpl({ id: 't-'+Date.now(), name: "新流程", cat: n, steps: ["第一步"] }); CUR_TAB = n; } };
-    window.addNewTpl = async () => { const n = prompt("流程名称:"); if(n) await window.apiPostTpl({ id: 't-'+Date.now(), name: n, cat: CUR_TAB, steps: ["第一步"] }); };
-    
-    window.addP = async () => { 
-        const n = document.getElementById("ipt_n").value; const tpl = document.getElementById("ipt_tpl").value; if(!n||!tpl) return; 
-        const p = { id: 'p-'+Date.now(), n, tpl, un: document.getElementById("ipt_un").value, am: Number(document.getElementById("ipt_am").value), s: 0, memo: "", isArchived: 0, createdAt: Date.now() };
-        await window.saveProjectToDB(p);
-        window.closeModal("addModal"); 
-    };
-
-    window.switchView = (v) => { document.getElementById("viewHome").className = v==='home'?'view-section view-active':'view-section'; document.getElementById("viewArchive").className = v==='archive'?'view-section view-active':'view-section'; if(v==='archive') window.renderArchive(); };
-    window.renderArchive = () => { const arch = STATE.all.filter(p => p.isArchived); document.getElementById("archiveGrid").innerHTML = arch.map(p => `<div class="card" style="opacity:0.6"><b>📦 ${p.n}</b><br><small>${p.un}</small></div>`).join(arch.length?'':'<div style="grid-column:1/-1; text-align:center; padding:50px;">归档库空空如也</div>'); };
-    window.closeModal = (id) => { document.getElementById(id).style.display = "none"; window.loadData(); };
-    window.showTplMgr = () => { IS_TPL_EDITING = false; window.renderTplList(); document.getElementById("tplModal").style.display = "flex"; };
+    window.updateStatus = (s) => document.getElementById("syncIndicator").className = s ? "status-dot dot-syncing" : "status-dot";
     window.showAdd = () => document.getElementById("addModal").style.display = "flex";
-    window.updateTplSelect = () => { const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat] = acc[t.cat] || []).push(t); return acc; }, {}); document.getElementById("ipt_tpl").innerHTML = Object.keys(g).map(c => `<optgroup label="${c}">${g[c].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join(''); };
-    window.autoTheme = () => { const t = localStorage.getItem('flow-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); };
-    window.toggleThemeManual = () => { const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', t); localStorage.setItem('flow-theme', t); };
+    window.closeModal = (id) => document.getElementById(id).style.display = "none";
+    window.updateTplSelect = () => {
+        const g = STATE.tpls.reduce((acc, t) => { (acc[t.cat||"默认"] = acc[t.cat||"默认"] || []).push(t); return acc; }, {});
+        document.getElementById("ipt_tpl").innerHTML = Object.keys(g).map(c => `<optgroup label="${c}">${g[c].map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</optgroup>`).join('');
+    };
+    window.switchView = (v) => { if(v==='home') window.loadData(); };
 </script>
 </body>
 </html>
