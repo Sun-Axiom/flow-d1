@@ -29,7 +29,7 @@
     * **设置暗号**: 在 **Settings -> Variables** 中添加环境变量：
         * 名称: `AUTH_KEY`
         * 数值: `你的自定义暗号` (例如 `MySecret123`)
-3.  **部署代码**: 将后端 JavaScript 代码粘贴进编辑器并点击 **Deploy**。
+3.  **部署代码**: 将后端 JavaScript 代码(worker.js)粘贴进编辑器并点击 **Deploy**。
 
 ### 3. 前端部署 (Cloudflare Pages)
 1.  **修改配置**: 在 `index.html` 的 `<script>` 顶部，将 `API_URL` 修改为你 Worker 的实际地址。
